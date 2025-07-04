@@ -70,7 +70,7 @@ def main():
     ]
     ordered_prefixes = [
         'wheel', 'setuptools', 'tzdata', 'six',
-        'python_dateutil', 'pytz', 'et_xmlfile', 'openpyxl', 'numpy', 'pandas'
+        'python_dateutil', 'pytz', 'et_xmlfile', 'openpyxl', 'xlsxwriter', 'numpy', 'pandas'
     ]
 
     installed = set()

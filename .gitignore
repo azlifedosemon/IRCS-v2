@@ -1,0 +1,10 @@
+# Virtual envs & PyInstaller artifacts
+.venv/
+# build/
+# dist/
+# bootstrap_env.spec
+# python_embedded/
+
+# Python cache
+__pycache__/
+*.py[cod]
