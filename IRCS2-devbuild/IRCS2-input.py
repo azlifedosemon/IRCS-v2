@@ -5,27 +5,31 @@
 #    copy the path inside the ""
 
 # DV AZTRAD (CSV)
-DV_AZTRAD_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\DV_AZTRAD_Stat.csv"
+DV_AZTRAD_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\DV_AZTRAD_Stat.csv"
 
 # DV AZUL (CSV)
-DV_AZUL_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\DV_AZUL_Stat.csv"
+DV_AZUL_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\DV_AZUL_Stat.csv"
 
 # IT AZTRAD (CSV)
-IT_AZTRAD_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\IT_AZTRAD_FULL_Stat.csv"
+IT_AZTRAD_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\IT_AZTRAD_FULL_Stat.csv"
 
 # IT AZUL (CSV)
-IT_AZUL_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\IT_AZUL_FULL_Stat.csv"
+IT_AZUL_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\IT_AZUL_FULL_Stat.csv"
 
 #CODE LIBRARY
-CODE_LIBRARY_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\CODE LIBRARY.xlsx"
+CODE_LIBRARY_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\CODE LIBRARY.xlsx"
 
 # 2) enter the intended file name for the output file
 
 #OUTPUT PATH
 xlsx_filename = "test_file" #enter the intended file name without .xlsx
-xlsx_output = "/".join([x for x in DV_AZTRAD_path.split('\\')][:len(DV_AZTRAD_path.split('\\')) - 1 ]) + "/" + xlsx_filename + ".xlsx"
+xlsx_output = "\\".join([x for x in DV_AZTRAD_path.split('\\')][:len(DV_AZTRAD_path.split('\\')) - 1 ]) + "\\" + xlsx_filename + ".xlsx"
 
 user_input = [DV_AZTRAD_path, DV_AZUL_path, IT_AZTRAD_path, IT_AZUL_path, CODE_LIBRARY_path, xlsx_output]
+
+
+
+
 
 # ARCHIVE IN CASE OF ACCIDENTAL DELETION
 # *to use archive:
