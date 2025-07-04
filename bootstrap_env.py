@@ -23,7 +23,7 @@ def main():
     start_time = time.time()
     root = os.getcwd()
     env_dir = os.path.join(root, '.venv')
-    modules_dir = resource_path('modules11')
+    modules_dir = resource_path('modules')
 
     # 1) Locate host Python
     if os.name == 'nt':
