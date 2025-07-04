@@ -1,9 +1,9 @@
 import xlsxwriter
 from collections import defaultdict
+from IRCS2_input import xlsx_output
 
 
-output_path = "D:/1. IRCS Automation/Script Test/test script2/frozen_row.xlsx"
-wb = xlsxwriter.Workbook(output_path)
+wb = xlsxwriter.Workbook(xlsx_output)
 ws = wb.add_worksheet('Data')
 
 ws.freeze_panes(10, 4)
