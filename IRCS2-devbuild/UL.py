@@ -7,7 +7,8 @@ ul_dv = ul_dv.drop(columns=["goc"])
 ul_dv_final = ul_dv.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 # print(ul_dv_final)
 
-code_ul = pd.read_csv("D:/1. IRCS Automation/Control 2 DEV/IRCS-v2/IRCS2-devbuild/source/Code UL NEW.csv", sep = ";")
+code_ul = pd.read_excel("D:\Python\Code UL NEW.xlsx",sheet_name = ["Code UL NEW"],engine="openpyxl")
+code_ul = code_ul["Code UL NEW"]
 # print(code_ul)
 
 ul_dv_final[["product", "currency"]] = ul_dv_final["product_group"].str.extract(r"(\w+)_([\w\d]+)")
@@ -75,17 +76,16 @@ summary_ul_dv_final = pd.DataFrame([{
 }])
 
 # print(summary_ul_dv_final)
-mapping_dict = {
-    "ANSSP": "ASSP1",
-    "NASPP": "RNASPP",
-    "NSFAP": "RNSPOA",
-    "RASPP": "RNASPP"
-}
-full_stat = pd.read_csv(input_script.IT_AZUL_path, sep = ";")
+mapping_dict = pd.read_excel("D:\Python\Code UL NEW.xlsx",sheet_name = ["Code"],engine="openpyxl")
+mapping_dict = mapping_dict["Code"]
+mapping_dict
+
+full_stat = pd.read_csv("D:\IRCS\Control 2\IT_AZUL_FULL_Stat.csv", sep = ";")
 full_stat["product_group"] = full_stat["PRODUCT_CODE"].str.replace("BASE_","",regex=False)+"_"+full_stat["PR_CURR"]
 full_stat[["product", "currency"]] = full_stat["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 full_stat = full_stat.copy()
-full_stat["product"] = full_stat["product"].map(mapping_dict).fillna(full_stat["product"])
+convert = dict(zip(mapping_dict["Old"], mapping_dict["New"]))
+full_stat["product"] = full_stat["product"].map(convert).fillna(full_stat["product"])
 full_stat["product_group"] = full_stat["product"].str.cat(full_stat["currency"], sep="_")
 full_stat = full_stat.drop(columns=["PRODUCT_CODE","PR_CURR","product","currency"])
 
