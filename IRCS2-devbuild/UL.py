@@ -75,9 +75,19 @@ summary_ul_dv_final = pd.DataFrame([{
 }])
 
 # print(summary_ul_dv_final)
-full_stat = pd.read_csv(input_script.IT_AZUL_path, sep = ";")
+mapping_dict = {
+    "ANSSP": "ASSP1",
+    "NASPP": "RNASPP",
+    "NSFAP": "RNSPOA",
+    "RASPP": "RNASPP"
+}
+full_stat = pd.read_csv("D:\IRCS\Control 2\IT_AZUL_FULL_Stat.csv", sep = ";")
 full_stat["product_group"] = full_stat["PRODUCT_CODE"].str.replace("BASE_","",regex=False)+"_"+full_stat["PR_CURR"]
-full_stat = full_stat.drop(columns=["PRODUCT_CODE","PR_CURR"])
+full_stat[["product", "currency"]] = full_stat["product_group"].str.extract(r"(\w+)_([\w\d]+)")
+full_stat = full_stat.copy()
+full_stat["product"] = full_stat["product"].map(mapping_dict).fillna(full_stat["product"])
+full_stat["product_group"] = full_stat["product"].str.cat(full_stat["currency"], sep="_")
+full_stat = full_stat.drop(columns=["PRODUCT_CODE","PR_CURR","product","currency"])
 
 full_stat["POLICY_NO_Count"] = (
     full_stat["POLICY_NO_Count"]
