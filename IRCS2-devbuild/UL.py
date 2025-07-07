@@ -1,63 +1,66 @@
 import pandas as pd
 import numpy as np
+import IRCS2_input as input_script
 
-ul_dv = pd.read_csv("D:\IRCS\Control 2\DV_AZUL_Stat.csv")
+ul_dv = pd.read_csv(input_script.DV_AZUL_path)
 ul_dv = ul_dv.drop(columns=["goc"])
 ul_dv_final = ul_dv.groupby(["product_group"],as_index=False).sum(numeric_only=True)
-ul_dv_final
-code_ul = pd.read_csv("D:\Python\Code UL NEW.csv", sep = ";")
-code_ul
+# print(ul_dv_final)
+
+code_ul = pd.read_csv("D:/1. IRCS Automation/Control 2 DEV/IRCS-v2/IRCS2-devbuild/source/Code UL NEW.csv", sep = ";")
+# print(code_ul)
 
 ul_dv_final[["product", "currency"]] = ul_dv_final["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 ul_dv_final = ul_dv_final.drop(columns="product_group")
 ul_dv_final
+ 
 convert = dict(zip(code_ul["Prophet Code"], code_ul["Flag Code"]))
 ul_dv_final["product"] = ul_dv_final["product"].map(convert).fillna(ul_dv_final["product"])
 ul_dv_final["product_group"] = ul_dv_final["product"].str.cat(ul_dv_final["currency"], sep="_")
-
+ 
 ul_dv_final["pol_num"] = (
     ul_dv_final["pol_num"]
     .astype(str)                                
-    .str.replace(",", ".", regex=False)         
+    .str.replace(",", ".", regex=False)        
 )
-
+ 
 ul_dv_final["pol_num"] = pd.to_numeric(
     ul_dv_final["pol_num"], errors="coerce"
 )
-
+ 
 ul_dv_final["pre_ann"] = (
     ul_dv_final["pre_ann"]
     .astype(str)                                
-    .str.replace(",", ".", regex=False)         
+    .str.replace(",", ".", regex=False)        
 )
-
+ 
 ul_dv_final["pre_ann"] = pd.to_numeric(
     ul_dv_final["pre_ann"], errors="coerce"
 )
-
-
+ 
+ 
 ul_dv_final["sum_assur"] = (
     ul_dv_final["sum_assur"]
     .astype(str)                                
-    .str.replace(",", ".", regex=False)         
+    .str.replace(",", ".", regex=False)        
 )
-
+ 
 ul_dv_final["sum_assur"] = pd.to_numeric(
     ul_dv_final["sum_assur"], errors="coerce"
 )
-
+ 
 ul_dv_final["total_fund"] = (
     ul_dv_final["total_fund"]
     .astype(str)                                
-    .str.replace(",", ".", regex=False)         
+    .str.replace(",", ".", regex=False)        
 )
-
+ 
 ul_dv_final["total_fund"] = pd.to_numeric(
     ul_dv_final["total_fund"], errors="coerce"
 )
-
+ 
 ul_dv_final = ul_dv_final.groupby(["product_group"],as_index=False).sum(numeric_only=True)
-
+ 
 ul_dv_final
 pol_e_ul_dv_final = sum(ul_dv_final["pol_num"])
 sa_if_m_ul_dv_final = sum(ul_dv_final["sum_assur"])
@@ -71,8 +74,8 @@ summary_ul_dv_final = pd.DataFrame([{
     "total_fund_sum": total_fund_sum_ul_dv_final
 }])
 
-summary_ul_dv_final
-full_stat = pd.read_csv("D:\IRCS\Control 2\IT_AZUL_FULL_Stat.csv", sep = ";")
+# print(summary_ul_dv_final)
+full_stat = pd.read_csv(input_script.IT_AZUL_path, sep = ";")
 full_stat["product_group"] = full_stat["PRODUCT_CODE"].str.replace("BASE_","",regex=False)+"_"+full_stat["PR_CURR"]
 full_stat = full_stat.drop(columns=["PRODUCT_CODE","PR_CURR"])
 
@@ -145,7 +148,7 @@ summary_diff_total = pd.DataFrame([{
     "total_fund_sum": diff_total_fund
 }])
 
-summary_diff_total
+# print(summary_diff_total)
 merged = pd.merge(ul_dv_final, full_stat, on="product_group", how="outer", 
                   suffixes=("_ul_dv_final", "_full_stat"))
 
@@ -199,4 +202,3 @@ Different_Percentage_of_Checking_Result_to_Raw_Data = pd.DataFrame([{
 
 Different_Percentage_of_Checking_Result_to_Raw_Data
 
-print("test")

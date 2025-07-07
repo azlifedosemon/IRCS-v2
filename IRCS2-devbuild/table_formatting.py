@@ -1,10 +1,23 @@
 import xlsxwriter
 from collections import defaultdict
 from IRCS2_input import xlsx_output
+import UL
+import time
+
+def elapsed_time(start,end):
+    if round((end - start),0) > 60:
+        print(f"RUNTIME: {round((end_time - start_time) / 60, 2)} minutes")
+    elif (end - start) < 1:
+        print(f"RUNTIME: {round((end_time - start_time) * 1000, 2)} ms")
+    else:
+        print(f"RUNTIME: {round((end_time - start_time), 2)} second")
 
 
+############### EXCEL FORMATTING
+start_time = time.time()
 wb = xlsxwriter.Workbook(xlsx_output)
 ws = wb.add_worksheet('Data')
+number_format = '_(* #,##0_);_(* (#,##0)_);_(* "-"_);_(@_)'
 
 ws.freeze_panes(10, 4)
 
@@ -56,4 +69,46 @@ for x in range(1, len(header_table_notfreezed1) + 1):
 
 ws.write(9, 20, 'Remarks', header_table_notfreezed2_frm)
 
+####################### DATA ENTRY ROW 3
+sum_ul_dv_raw = UL.ul_dv.sum()
+clean_ul_dv_raw = sum_ul_dv_raw.iloc[1:].tolist()
+clean_ul_dv_raw[1], clean_ul_dv_raw[2] = clean_ul_dv_raw[2], clean_ul_dv_raw[1]
+for c, item in enumerate(clean_ul_dv_raw):
+    ws.write(2, c + 4, item, wb.add_format({'num_format': number_format}))
+
+sum_full_stat_raw = UL.full_stat.sum()
+clean_stat_raw = sum_full_stat_raw.iloc[1:].tolist()
+clean_stat_raw[1], clean_stat_raw[2] = clean_stat_raw[2], clean_stat_raw[1]
+for c, item in enumerate(clean_stat_raw):
+    ws.write(2, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
+
+sum_diff_raw = []
+for i in range(len(clean_ul_dv_raw)):
+    sum_diff_raw.append((clean_ul_dv_raw[i] - clean_stat_raw[i]).item())
+
+for c, item in enumerate(sum_diff_raw):
+    ws.write(2, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
+
+####################### DATA ENTRY ROW 4
+sum_ul_dv = UL.summary_ul_dv_final
+for c, item in enumerate(sum_ul_dv.iloc[0]):
+    ws.write(3, c + 4, item, wb.add_format({'num_format': number_format}))
+
+sum_full_stat = UL.summary_full_stat_total
+for c, item in enumerate(sum_full_stat.iloc[0]):
+    ws.write(3, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
+
+sum_diff_total = UL.summary_diff_total
+for c, item in enumerate(sum_diff_total.iloc[0]):
+    ws.write(3, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
+    
+######################## Diff row
+for x in range(1, len(header_table_notfreezed1) + 1):
+    for y in range(len(header_table_notfreezed1)):
+        unicode = chr(69 + (y + 4 * x) - 4)
+        ws.write_formula(4, y + (4 * x), f'={unicode}3-{unicode}4', wb.add_format({'num_format': number_format}))
+    
+
 wb.close()
+end_time = time.time()
+elapsed_time(start_time, end_time)
