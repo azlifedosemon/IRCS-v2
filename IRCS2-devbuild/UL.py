@@ -81,7 +81,7 @@ mapping_dict = {
     "NSFAP": "RNSPOA",
     "RASPP": "RNASPP"
 }
-full_stat = pd.read_csv("D:\IRCS\Control 2\IT_AZUL_FULL_Stat.csv", sep = ";")
+full_stat = pd.read_csv(input_script.IT_AZUL_path, sep = ";")
 full_stat["product_group"] = full_stat["PRODUCT_CODE"].str.replace("BASE_","",regex=False)+"_"+full_stat["PR_CURR"]
 full_stat[["product", "currency"]] = full_stat["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 full_stat = full_stat.copy()
@@ -194,7 +194,7 @@ sa_if_m= (summary_diff_total["sa_if_m"]/summary_full_stat_total["sa_if_m"])*100
 anp_if_m =(summary_diff_total["anp_if_m"]/summary_full_stat_total["anp_if_m"])*100
 total_fund_sum= (summary_diff_total["total_fund_sum"]/summary_full_stat_total["total_fund_sum"])*100
 
-Different_Percentage = pd.DataFrame([{
+Different_Percentage = pd.DataFrame([{  
     "policy_count": policy_count,
     "sa_if_m": sa_if_m,
     "anp_if_m": anp_if_m, 
