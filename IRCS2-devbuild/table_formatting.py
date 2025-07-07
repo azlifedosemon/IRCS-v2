@@ -3,6 +3,7 @@ from collections import defaultdict
 from IRCS2_input import xlsx_output
 import UL
 import time
+import pandas as pd
 
 def elapsed_time(start,end):
     if round((end - start),0) > 60:
@@ -15,13 +16,13 @@ def elapsed_time(start,end):
 
 ############### EXCEL FORMATTING
 start_time = time.time()
-wb = xlsxwriter.Workbook(xlsx_output)
+wb = xlsxwriter.Workbook(xlsx_output, {'nan_inf_to_errors': True})
 ws = wb.add_worksheet('Data')
 number_format = '_(* #,##0_);_(* (#,##0)_);_(* "-"_);_(@_)'
 
 ws.freeze_panes(10, 4)
 
-headers_summary = ['Items', 'Total Input from csv', 'Total output in summary', 'Diff', 'AZUL']
+headers_summary = ['Items', 'Total Input from csv', 'Total output in summary', 'Diff']
 
 headers_sum_dict = defaultdict(int)
 for h in headers_summary:
@@ -31,10 +32,7 @@ ws.set_column(1, 19, max_len + 2)
 ws.set_column(20, 20, max_len * 6)
 
 for c, h in enumerate(headers_summary):
-    if c < len(headers_sum_dict) - 1:
-        ws.write(c + 1, 3, h, wb.add_format({'bold': True}))
-    else:
-        ws.write(c + 1, 3, h, wb.add_format({'bold': True, 'bg_color': 'yellow', 'pattern': 1}))
+    ws.write(c + 1, 3, h, wb.add_format({'bold': True}))
 
 headers_table = ["Product code", "Grouping DV", "Grouping Raw Data"]
 for c, h in enumerate(headers_table):
@@ -89,6 +87,7 @@ for i in range(len(clean_ul_dv_raw)):
 for c, item in enumerate(sum_diff_raw):
     ws.write(2, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
 
+
 ####################### DATA ENTRY ROW 4
 sum_ul_dv = UL.summary_ul_dv_final
 for c, item in enumerate(sum_ul_dv.iloc[0]):
@@ -102,12 +101,43 @@ sum_diff_total = UL.summary_diff_total
 for c, item in enumerate(sum_diff_total.iloc[0]):
     ws.write(3, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
     
+    
 ######################## Diff row
-for x in range(1, len(header_table_notfreezed1) + 1):
+for x in range(1, len(header_table_notfreezed1)):
     for y in range(len(header_table_notfreezed1)):
         unicode = chr(69 + (y + 4 * x) - 4)
-        ws.write_formula(4, y + (4 * x), f'={unicode}3-{unicode}4', wb.add_format({'num_format': number_format}))
+        ws.write_formula(4, y + (4 * x), f'={unicode}3-{unicode}4', wb.add_format({'num_format': number_format,  'bg_color': '#92D050'}))
     
+
+######################## Diff percentage
+sum_diff_percent = UL.Different_Percentage_of_Checking_Result_to_Raw_Data
+for c, item in enumerate(sum_diff_percent.iloc[0]):
+    ws.merge_range(2, 16 + c, 3, 16 + c, item, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%', 'bg_color': 'yellow', 'bold': True}))
+    
+######################## Lookup table
+
+test = UL.table2.iloc[:,0].tolist()
+if len(test) == len(set(test)):
+    print("ALL UNIQUE")
+
+
+table1 = UL.table2.iloc[:,0:13]
+table2 = UL.table2.iloc[:,13:]
+for x in range(len(table1)):
+    for c, item in enumerate(table1.iloc[x]):
+        ws.write(10 + x, 3 + c, item, wb.add_format({'num_format': number_format}))
+for x in range(len(table2)):
+    for c, item in enumerate(table2.iloc[x]):
+        ws.write(10 + x, 16 + c, round(item,1), wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%'}))
+
+ws.conditional_format('Q11:T999', {
+    'type':     'cell',
+    'criteria': '<',
+    'value':    0,
+    'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
+})
+
+
 
 wb.close()
 end_time = time.time()

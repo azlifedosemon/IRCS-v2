@@ -122,7 +122,7 @@ full_stat["total_fund_Sum"] = pd.to_numeric(
 
 full_stat = full_stat.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 
-full_stat
+# print(full_stat)
 pol_e_full_stat_total = sum(full_stat["POLICY_NO_Count"])
 sa_if_m_full_stat_total = sum(full_stat["PR_SA_Sum"])
 anp_if_m_full_stat_total = sum(full_stat["pre_ann_Sum"])
@@ -161,7 +161,9 @@ result["pre_ann_diff"] = merged["pre_ann"] - merged["pre_ann_Sum"]
 result["sum_assur_diff"] = merged["sum_assur"] - merged["PR_SA_Sum"]
 result["total_fund_diff"] = merged["total_fund"] - merged["total_fund_Sum"]
 
-result
+table1 = pd.merge(merged, result, on="product_group", how='outer')
+
+
 merged_2 = pd.merge(result, full_stat, on="product_group", how="outer", 
                   suffixes=("_result", "_full_stat"))
 
@@ -174,7 +176,9 @@ result_percent["pre_ann_percent"] = merged_2["pre_ann_diff"]/merged_2["pre_ann_S
 result_percent["sum_assur_percent"] = merged_2["sum_assur_diff"] /merged_2["PR_SA_Sum"]*100
 result_percent["total_fund_percent"] = merged_2["total_fund_diff"] /merged_2["total_fund_Sum"]*100
 
-result_percent
+result_percent.replace(np.inf, 0, inplace=True)
+table2 = pd.merge(table1, result_percent, on="product_group", how="outer")
+
 policy_count = ((summary_diff_total["pol_e"]/summary_full_stat_total["pol_e"])*100) 
 sa_if_m= (summary_diff_total["sa_if_m"]/summary_full_stat_total["sa_if_m"])*100
 anp_if_m =(summary_diff_total["anp_if_m"]/summary_full_stat_total["anp_if_m"])*100
