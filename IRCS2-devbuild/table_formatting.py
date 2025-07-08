@@ -5,6 +5,7 @@ import UL
 import time
 import lookupvalue as tst
 import numpy
+import trad
 
 def elapsed_time(start,end):
     if round((end - start),0) > 60:
@@ -15,11 +16,14 @@ def elapsed_time(start,end):
         print(f"\n RUNTIME: {round((end_time - start_time), 2)} second")
 
 
+
 ############### EXCEL FORMATTING
 start_time = time.time()
 wb = xlsxwriter.Workbook(xlsx_output, {'nan_inf_to_errors': True})
-ws = wb.add_worksheet('Summary_Checking_UL')
 number_format = '_(* #,##0_);_(* (#,##0)_);_(* "-"_);_(@_)'
+
+# AZUL SHEET
+ws = wb.add_worksheet('Summary_Checking_UL')
 
 ws.freeze_panes(10, 4)
 
@@ -137,7 +141,85 @@ ws.conditional_format('Q11:T999', {
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
-# NEW SHEET
+
+# AZTRAD SUMMARY SHEET
+
+wtrad = wb.add_worksheet('Summary_Checking_TRAD')
+
+wtrad.freeze_panes(10, 4)
+
+headers_summary = ['Items', 'Total Input from csv', 'Total output in summary', 'Diff', 'AZTRAD']
+
+headers_sum_dict = defaultdict(int)
+for h in headers_summary:
+    headers_sum_dict[h] = len(h)
+max_len = max(headers_sum_dict.items())[1]
+wtrad.set_column(1, 19, max_len + 2)
+wtrad.set_column(20, 20, max_len * 6)
+
+for c, h in enumerate(headers_summary):
+    if h != headers_summary[-1]:
+        wtrad.write(c + 1, 3, h, wb.add_format({'bold': True}))
+    else:
+        wtrad.write(c + 1, 3, h, wb.add_format({'bold': True, 'bg_color': 'yellow'}))
+
+headers_table = ["Product code", "Grouping DV", "Grouping Raw Data"]
+for c, h in enumerate(headers_table):
+    wtrad.merge_range(8, c + 1, 9, c + 1, h, wb.add_format({'bold': True, 'bg_color': '#002060', 
+                                                  'pattern': 1, 'font_color': 'white', 
+                                                  'align': 'center', 'valign': 'vcenter'}))
+
+header_table_notfreezed1 = ["DV Output [1]", "Raw Data [2]", "Checking Results [1]-[2]", "Different Percentage of Checking Result to Raw Data"]
+headers_table_notfreezed2 = ["pol_e", "sa_if_m", "anp_if_m", "total_fund_sum"]
+header_table_notfreezed1_frm = wb.add_format({'bold': True, 'bg_color': '#002060', 
+                                'pattern': 1, 'font_color': 'white', 
+                                'align': 'center', 'valign': 'center',
+                                'top': 2, 'top_color':'white', 'bottom': 2,
+                                'bottom_color': 'white', 'left': 1,'left_color': 'white',
+                                'right': 1,'right_color': 'white'})
+header_table_notfreezed2_frm = wb.add_format({'bold': True, 'bg_color': '#3A3838', 
+                                'pattern': 1, 'font_color': 'white', 
+                                'align': 'center', 'valign': 'center',
+                                'top': 2, 'top_color':'white', 'bottom': 2,
+                                'bottom_color': 'white', 'left': 1,'left_color': 'white',
+                                'right': 1,'right_color': 'white'})
+
+
+for c,h in enumerate(header_table_notfreezed1):
+    wtrad.merge_range(0, 4 * (c + 1), 0, (4 * (c + 1)) + 3, h, header_table_notfreezed1_frm)
+    wtrad.merge_range(8, 4 * (c + 1), 8, (4 * (c + 1)) + 3, h, header_table_notfreezed1_frm)
+
+for x in range(1, len(header_table_notfreezed1) + 1):
+    for c,h in enumerate(headers_table_notfreezed2):
+        wtrad.write(1, c + (4 * (x)), h, header_table_notfreezed2_frm)
+        wtrad.write(9, c + (4 * (x)), h, header_table_notfreezed2_frm)
+
+wtrad.write(9, 20, 'Remarks', header_table_notfreezed2_frm)
+
+###################### row 3
+
+sum_trad_dv_raw = trad.trad_dv.sum()
+clean_trad_dv_raw = sum_trad_dv_raw.iloc[1:len(sum_trad_dv_raw) - 1].tolist()
+clean_trad_dv_raw[1], clean_trad_dv_raw[2] = clean_trad_dv_raw[2], clean_trad_dv_raw[1]
+clean_trad_dv_raw.append(0)
+for c, item in enumerate(clean_trad_dv_raw):
+    wtrad.write(2, c + 4, item, wb.add_format({'num_format': number_format}))
+
+sum_trad_stat_raw = trad.summary_full_stat_total.sum()
+clean_trad_stat_raw = sum_trad_stat_raw.tolist()
+clean_trad_stat_raw.append(0)
+for c, item in enumerate(clean_trad_stat_raw):
+    wtrad.write(2, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
+
+sum_trad_diff_raw = []
+for i in range(len(clean_trad_dv_raw)):
+    sum_trad_diff_raw.append(clean_trad_dv_raw[i] - clean_trad_stat_raw[i])
+
+for c, item in enumerate(sum_trad_diff_raw):
+    wtrad.write(2, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
+
+
+# SUMMARY SHEET
 wsum = wb.add_worksheet("CONTROL_2_SUMMARY")
 wsum.set_column(2, 17, max_len)
 wsum.set_column(18, 18, max_len + 5)

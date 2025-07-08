@@ -23,6 +23,6 @@ xlsx_output          = "\\".join([x for x in DV_AZTRAD_path.split('\\')]
 # tradconv_txt = path input here
 # tradsha_txt = path input here
 
-cleaned_columns = ['POLICY_REF', 'PRODUCT_CODE', 'COVER_CODE', 'SUM_INSURED', 'CURRENCY1', 'POLICY_START_DATE']
-df = pd.read_csv(RESERVE_TRADCONV_RWNB_IFRS_2025_path, sep=';')
-print(df.columns)
+# cleaned_columns = ['POLICY_REF', 'PRODUCT_CODE', 'COVER_CODE', 'SUM_INSURED', 'CURRENCY1', 'POLICY_START_DATE']
+# df = pd.read_csv(RESERVE_TRADCONV_RWNB_IFRS_2025_path, sep=';')
+# print(df.columns)
