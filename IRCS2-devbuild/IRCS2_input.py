@@ -5,6 +5,7 @@ CODE_LIBRARY_path = r'D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild
 input_df = (pd.read_excel(CODE_LIBRARY_path, engine='openpyxl', sheet_name=['PATH INPUT']))['PATH INPUT']
 path_map = dict(zip(input_df['Category'], input_df['Path']))
 
+reporting_period     = path_map.get('Reporting Period')
 DV_AZTRAD_path       = path_map.get('DV_AZTRAD')
 DV_AZUL_path         = path_map.get('DV_AZUL')
 IT_AZTRAD_path       = path_map.get('IT_AZTRAD')
@@ -15,3 +16,13 @@ BSI_ATTRIBUSI_path   = path_map.get('BSI Attribusi')
 xlsx_filename        = path_map.get('Output filename')
 xlsx_output          = "\\".join([x for x in DV_AZTRAD_path.split('\\')]
                                  [:len(DV_AZTRAD_path.split('\\')) - 1 ]) + "\\" + xlsx_filename + ".xlsx"
+
+# RESERVE_TRADCONV_RWNB_IFRS_2025_path = path_map.get('RESERVE_TRADCONV_RWNB_IFRS_2025')
+# RESERVE_TRADSHA_RWNB_IFRS_2025_path = path_map.get('RESERVE_TRADSHA_RWNB_IFRS_2025')
+
+# tradconv_txt = path input here
+# tradsha_txt = path input here
+
+cleaned_columns = ['POLICY_REF', 'PRODUCT_CODE', 'COVER_CODE', 'SUM_INSURED', 'CURRENCY1', 'POLICY_START_DATE']
+df = pd.read_csv(RESERVE_TRADCONV_RWNB_IFRS_2025_path, sep=';')
+print(df.columns)
