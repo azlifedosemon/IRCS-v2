@@ -2,22 +2,19 @@ import pandas as pd
 import numpy as np
 import IRCS2_input as input_script
 
-ul_dv = pd.read_csv(input_script.DV_AZUL_path)
-ul_dv = ul_dv.drop(columns=["goc"])
-ul_dv_final = ul_dv.groupby(["product_group"],as_index=False).sum(numeric_only=True)
-# print(ul_dv_final)
-
 code_ul = pd.read_excel(input_script.CODE_LIBRARY_path,sheet_name = ["UL"],engine="openpyxl")
 code_ul = code_ul["UL"]
-# print(code_ul)
 
+# DV AZUL CLEANUP
+
+ul_dv = pd.read_csv(input_script.DV_AZUL_path)
+
+ul_dv = ul_dv.drop(columns=["goc"])
+ul_dv_final = ul_dv.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 ul_dv_final[["product", "currency"]] = ul_dv_final["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 ul_dv_final = ul_dv_final.drop(columns="product_group")
- 
-# print(ul_dv_final[["product",'currency']])
 convert = dict(zip(code_ul["Prophet Code"], code_ul["Flag Code"]))
 ul_dv_final["product"] = ul_dv_final["product"].map(convert).fillna(ul_dv_final["product"])
-# print(ul_dv_final[['product','currency']])
 ul_dv_final["product_group"] = ul_dv_final["product"].str.cat(ul_dv_final["currency"], sep="_")
 
 ul_dv_final["pol_num"] = (
@@ -63,7 +60,6 @@ ul_dv_final["total_fund"] = pd.to_numeric(
  
 ul_dv_final = ul_dv_final.groupby(["product_group"],as_index=False).sum(numeric_only=True)
  
-ul_dv_final
 pol_e_ul_dv_final = sum(ul_dv_final["pol_num"])
 sa_if_m_ul_dv_final = sum(ul_dv_final["sum_assur"])
 anp_if_m_ul_dv_final = sum(ul_dv_final["pre_ann"])
@@ -76,15 +72,17 @@ summary_ul_dv_final = pd.DataFrame([{
     "total_fund_sum": total_fund_sum_ul_dv_final
 }])
 
-# print(summary_ul_dv_final)
+
 mapping_dict = pd.read_excel(input_script.CODE_LIBRARY_path,sheet_name = ["SPEC UL"],engine="openpyxl")
 mapping_dict = mapping_dict["SPEC"]
-mapping_dict
+
+
+# IT AZUL CLEAN UP
 
 full_stat = pd.read_csv(input_script.IT_AZUL_path, sep = ";")
+
 full_stat["product_group"] = full_stat["PRODUCT_CODE"].str.replace("BASE_","",regex=False)+"_"+full_stat["PR_CURR"]
 full_stat[["product", "currency"]] = full_stat["product_group"].str.extract(r"(\w+)_([\w\d]+)")
-full_stat = full_stat.copy()
 convert = dict(zip(mapping_dict["Old"], mapping_dict["New"]))
 full_stat["product"] = full_stat["product"].map(convert).fillna(full_stat["product"])
 full_stat["product_group"] = full_stat["product"].str.cat(full_stat["currency"], sep="_")
@@ -133,7 +131,6 @@ full_stat["total_fund_Sum"] = pd.to_numeric(
 
 full_stat = full_stat.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 
-# print(full_stat)
 pol_e_full_stat_total = sum(full_stat["POLICY_NO_Count"])
 sa_if_m_full_stat_total = sum(full_stat["PR_SA_Sum"])
 anp_if_m_full_stat_total = sum(full_stat["pre_ann_Sum"])
@@ -146,7 +143,6 @@ summary_full_stat_total = pd.DataFrame([{
     "total_fund_sum": total_fund_sum_full_stat_total
 }])
 
-summary_full_stat_total
 diff_pol_e = pol_e_ul_dv_final-pol_e_full_stat_total
 diff_sa_if_m = sa_if_m_ul_dv_final-sa_if_m_full_stat_total
 diff_anp_if_m = anp_if_m_ul_dv_final-anp_if_m_full_stat_total
@@ -159,7 +155,8 @@ summary_diff_total = pd.DataFrame([{
     "total_fund_sum": diff_total_fund
 }])
 
-# print(summary_diff_total)
+
+
 merged = pd.merge(ul_dv_final, full_stat, on="product_group", how="outer", 
                   suffixes=("_ul_dv_final", "_full_stat"))
 
@@ -202,7 +199,6 @@ Different_Percentage = pd.DataFrame([{
     "total_fund_sum": total_fund_sum
 }])
 
-Different_Percentage
 policy_count = (sum(result_percent["policy_count_percent"])/sum(full_stat["POLICY_NO_Count"]))
 sa_if_m= (sum(result_percent["sum_assur_percent"])/sum(full_stat["PR_SA_Sum"]))
 anp_if_m = (sum(result_percent["pre_ann_percent"])/sum(full_stat["pre_ann_Sum"]))
@@ -215,5 +211,4 @@ Different_Percentage_of_Checking_Result_to_Raw_Data = pd.DataFrame([{
     "total_fund_sum": total_fund_sum
 }])
 
-Different_Percentage_of_Checking_Result_to_Raw_Data
 

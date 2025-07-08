@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
-import openpyxl
 from functools import reduce
-code = pd.read_excel("D:\Python\Code Trad.xlsx",sheet_name = ["Code Trad"],engine="openpyxl")
-code = code["Code Trad"]
-code
+import IRCS2_input as import_sheet
+
+
+code = pd.read_excel(import_sheet.CODE_LIBRARY_path,sheet_name = ["TRAD"],engine="openpyxl")
+code = code["TRAD"]
+
 trad_dv = pd.read_csv("D:\IRCS\Control 2\DV_AZTRAD_Stat.csv",sep = ",")
 trad_dv = trad_dv.drop(columns=["goc"])
 trad_dv_final = trad_dv.groupby(["product_group"],as_index=False).sum(numeric_only=True)
