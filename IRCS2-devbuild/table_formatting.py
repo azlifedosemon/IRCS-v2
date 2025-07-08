@@ -209,7 +209,16 @@ sum_trad_stat_raw = trad.summary_full_stat_total.sum()
 clean_trad_stat_raw = sum_trad_stat_raw.tolist()
 clean_trad_stat_raw.append(0)
 for c, item in enumerate(clean_trad_stat_raw):
-    wtrad.write(2, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
+    wtrad.write(3, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
+    wtrad.write(5, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
+
+sum_trad_dv_raw = trad.summary_trad_dv_final.sum()
+clean_trad_dv_raw = sum_trad_dv_raw.tolist()
+clean_trad_dv_raw.append(0)
+for c, item in enumerate(clean_trad_dv_raw):
+    wtrad.write(3, c + 4, item, wb.add_format({'num_format': number_format}))
+    wtrad.write(5, c + 4, item, wb.add_format({'num_format': number_format}))
+
 
 sum_trad_diff_raw = []
 for i in range(len(clean_trad_dv_raw)):
@@ -217,6 +226,15 @@ for i in range(len(clean_trad_dv_raw)):
 
 for c, item in enumerate(sum_trad_diff_raw):
     wtrad.write(2, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
+
+
+################# DIFF ROW
+for x in range(1, len(header_table_notfreezed1)):
+    for y in range(len(header_table_notfreezed1)):
+        unicode = chr(69 + (y + 4 * x) - 4)
+        wtrad.write_formula(4, y + (4 * x), f'={unicode}3-{unicode}4', wb.add_format({'num_format': number_format,  'bg_color': '#92D050'}))
+    
+
 
 
 # SUMMARY SHEET

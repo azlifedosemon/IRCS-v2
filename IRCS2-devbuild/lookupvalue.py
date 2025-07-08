@@ -2,6 +2,7 @@ import pandas as pd
 import IRCS2_input as input_script
 import xlsxwriter
 import UL
+import trad
 
 ul_dv = pd.read_csv(input_script.DV_AZUL_path)
 ul_dv = ul_dv.drop(columns=["goc"])
@@ -83,3 +84,18 @@ currency_totals = (
 
 currency_totals['Currency'] = 'UL_' + currency_totals['Currency']
 
+
+
+
+
+
+trad_dv_metrics = trad.trad_dv_final.copy()
+trad_stat_metrics = trad.full_stat_total.copy()
+diff_dv_stat_metrics = trad.total.copy()
+diff_percent_metrics = trad.result_percent.copy()
+
+summary_diff_total_input = trad.summary_diff_total_input
+summary_diff_aztrad_output = trad.sum_assur_diff_aztrad_output
+summary_diff_percent = trad.Different_Percentage
+
+# print(summary_diff_total_input)
