@@ -234,7 +234,7 @@ cols = ["Grouping Raw Data", "Grouping DV"] + [col for col in summary.columns if
 summary = summary[cols]
 
 summary
-bsi = pd.read_excel("D:\IRCS\Control 2\LGC & LGM Campaign\BSI_ATTRIBUSI_020425.xlsx", sheet_name = ["Export Worksheet"], engine="openpyxl")
+bsi = pd.read_excel(input_sheet.BSI_ATTRIBUSI_path, sheet_name = ["Export Worksheet"], engine="openpyxl")
 bsi = bsi["Export Worksheet"]
 bsi = bsi.drop(columns=["POLICY_NO","CP_PH_ID","CP_PH","PRODUCT_CODE","CP_INSURED_ID","LOANNO","CP_INSURED","POLICY_STATUS","UP_ATTR"])
 bsi = bsi.rename(columns = {"COVER_CODE":"product",
