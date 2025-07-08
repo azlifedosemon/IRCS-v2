@@ -4,6 +4,7 @@ from IRCS2_input import xlsx_output
 import UL
 import time
 import lookupvalue as tst
+import numpy
 
 def elapsed_time(start,end):
     if round((end - start),0) > 60:
@@ -128,7 +129,9 @@ for x in range(len(table1)):
         ws.write(10 + x, c + 1, item, wb.add_format({'num_format': number_format}))
 for x in range(len(table2)):
     for c, item in enumerate(table2.iloc[x]):
-        ws.write(10 + x, 16 + c, round(item,1), wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%'}))
+        if type(item) == numpy.float64:
+            item = round(item,1)
+        ws.write(10 + x, 16 + c, item, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'}))
 
 ws.conditional_format('Q11:T999', {
     'type':     'cell',

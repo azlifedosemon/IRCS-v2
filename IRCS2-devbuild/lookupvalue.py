@@ -58,3 +58,8 @@ rest = [c for c in full_lookup_table.columns if c not in first_three]
 # 3) Reindex into the new order
 full_lookup_table = full_lookup_table[first_three + rest]
 
+# 1) Add a blank column
+full_lookup_table['New Blank'] = ''              # every row gets an empty string
+
+# 2) Pull out the currency suffix from product_group
+full_lookup_table['Currency'] = full_lookup_table['product_group'].str[-3:]
