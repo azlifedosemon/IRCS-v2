@@ -299,6 +299,20 @@ sum_diff_aztrad = pd.DataFrame([{
 }])
 
 sum_diff_aztrad
+
+merged_3 = pd.merge(total, full_stat_total, on="product_group", how="outer", 
+                  suffixes=("_total", "_full_stat_total"))
+
+merged_3.fillna(0, inplace=True)
+
+result_percent = pd.DataFrame()
+result_percent["product_group"] = merged_3["product_group"]
+result_percent["policy_count_percent"] = merged_3["policy_count_diff"]/merged_3["POLICY_REF_Count"]*100
+result_percent["pre_ann_percent"] = merged_3["anp_if_m_diff"]/merged_3["pre_ann_Sum"]*100
+result_percent["sum_assur_percent"] = merged_3["sum_a_if_m_diff"] /merged_3["sum_assd_Sum"]*100
+
+result_percent
+
 policy_count = ((sum_diff_aztrad["policy_count_aztrad"]/summary_full_stat_total["pol_e"])*100) 
 sa_if_m= (sum_diff_aztrad["sa_if_m_aztrad"]/summary_full_stat_total["sa_if_m"])*100
 anp_if_m =(sum_diff_aztrad["anp_if_m_aztrad"]/summary_full_stat_total["anp_if_m"])*100
