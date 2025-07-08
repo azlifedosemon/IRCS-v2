@@ -77,7 +77,7 @@ summary_ul_dv_final = pd.DataFrame([{
 }])
 
 # print(summary_ul_dv_final)
-mapping_dict = pd.read_excel(input_script.CODE_LIBRARY_path,sheet_name = ["SPEC"],engine="openpyxl")
+mapping_dict = pd.read_excel(input_script.CODE_LIBRARY_path,sheet_name = ["SPEC UL"],engine="openpyxl")
 mapping_dict = mapping_dict["SPEC"]
 mapping_dict
 
