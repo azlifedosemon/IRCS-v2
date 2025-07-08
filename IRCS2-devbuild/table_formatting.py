@@ -3,7 +3,6 @@ from collections import defaultdict
 from IRCS2_input import xlsx_output
 import UL
 import time
-import pandas as pd
 import lookupvalue as tst
 
 def elapsed_time(start,end):
@@ -137,6 +136,24 @@ ws.conditional_format('Q11:T999', {
     'value':    0,
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
+
+wsum = wb.add_worksheet("CONTROL_2_SUMMARY")
+wsum.set_column(2, 17, max_len - 9)
+wsum.set_column(18, 18, max_len)
+
+for c,h in enumerate(header_table_notfreezed1):
+    wsum.merge_range(1, 2 + 4 * c, 1, 2 + 4 * c + 3, h, header_table_notfreezed1_frm)
+
+for x in range(len(header_table_notfreezed1)):
+    for c,h in enumerate(headers_table_notfreezed2):
+        wsum.write(2, c + 2 +  (4 * (x)), h, header_table_notfreezed2_frm)
+
+wsum.merge_range(1, 18, 2, 18, 'Remarks', wb.add_format({'bold': True, 'bg_color': '#002060', 
+                                'pattern': 1, 'font_color': 'white', 
+                                'align': 'center', 'valign': 'center',
+                                'top': 2, 'top_color':'white', 'bottom': 2,
+                                'bottom_color': 'white', 'left': 1,'left_color': 'white',
+                                'right': 1,'right_color': 'white', 'valign': 'vcenter'}))
 
 
 
