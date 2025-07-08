@@ -94,8 +94,10 @@ trad_stat_metrics = trad.full_stat_total.copy()
 diff_dv_stat_metrics = trad.total.copy()
 diff_percent_metrics = trad.result_percent.copy()
 
+full_stat_total = trad.full_stat_total
+
 summary_diff_total_input = trad.summary_diff_total_input
-summary_diff_aztrad_output = trad.sum_assur_diff_aztrad_output
+summary_diff_aztrad_output = trad.sum_assur_diff_aztrad_output # correct row 4
 summary_diff_percent = trad.Different_Percentage
 
-# print(summary_diff_total_input)
+print(summary_diff_aztrad_output)
