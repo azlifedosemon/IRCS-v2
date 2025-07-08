@@ -74,7 +74,7 @@ summary_ul_dv_final = pd.DataFrame([{
 
 
 mapping_dict = pd.read_excel(input_script.CODE_LIBRARY_path,sheet_name = ["SPEC UL"],engine="openpyxl")
-mapping_dict = mapping_dict["SPEC"]
+mapping_dict = mapping_dict["SPEC UL"]
 
 
 # IT AZUL CLEAN UP
