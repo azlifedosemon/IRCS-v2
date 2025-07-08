@@ -112,9 +112,11 @@ for x in range(1, len(header_table_notfreezed1)):
 
 ######################## Diff percentage
 sum_diff_percent = UL.Different_Percentage_of_Checking_Result_to_Raw_Data
-for c, item in enumerate(sum_diff_percent.iloc[0]):
-    ws.merge_range(2, 16 + c, 3, 16 + c, item, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%', 'bg_color': 'yellow', 'bold': True}))
-    
+for c in range(len(header_table_notfreezed1)):
+    unicode = chr(77 + c)
+    formula = f'=IFERROR(round({unicode}{4}/{chr(ord(unicode) - 4)}{4} * 100, 1),0)'
+    ws.merge_range(2, 16 + c, 3, 16 + c, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%', 'bg_color': 'yellow', 'bold': True}))
+
 ######################## Lookup table
 
 table1 = tst.full_lookup_table.iloc[:,0:15]
