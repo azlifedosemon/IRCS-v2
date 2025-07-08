@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
 from functools import reduce
-import IRCS2_input as import_sheet
+import IRCS2_input as input_sheet
 
 
-code = pd.read_excel(import_sheet.CODE_LIBRARY_path,sheet_name = ["TRAD"],engine="openpyxl")
+code = pd.read_excel(input_sheet.CODE_LIBRARY_path,sheet_name = ["TRAD"],engine="openpyxl")
 code = code["TRAD"]
 
-trad_dv = pd.read_csv("D:\IRCS\Control 2\DV_AZTRAD_Stat.csv",sep = ",")
+trad_dv = pd.read_csv(input_sheet.DV_AZTRAD_path,sep = ",")
+
 trad_dv = trad_dv.drop(columns=["goc"])
 trad_dv_final = trad_dv.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 trad_dv_final[["product", "currency"]] = trad_dv_final["product_group"].str.extract(r"(\w+)_([\w\d]+)")
@@ -70,8 +71,11 @@ summary_trad_dv_final = pd.DataFrame([{
     "anp_if_m": anp_if_m_trad_dv_final,
 }])
 
-summary_trad_dv_final
-full_stat = pd.read_csv("D:\IRCS\Control 2\IT_AZTRAD_FULL_Stat.csv", sep = ";")
+print(summary_trad_dv_final)
+
+
+full_stat = pd.read_csv(input_sheet.IT_AZTRAD_path, sep = ";")
+
 full_stat["product_group"] = full_stat["PRODUCT_CODE"].str.replace("BASE_","",regex=False)+"_"+full_stat["CURRENCY1"]
 full_stat = full_stat.drop(columns=["PRODUCT_CODE","CURRENCY1"])
 
@@ -108,10 +112,10 @@ full_stat["sum_assd_Sum"] = pd.to_numeric(
 
 full_stat = full_stat.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 full_stat = full_stat[~(full_stat["product_group"].str.startswith("A_") | full_stat["product_group"].str.startswith("NA_"))]
+
 full_stat
-summary = pd.read_csv("D:\IRCS\Control 2\Summary.csv", sep = ",")
-summary
-summary = pd.read_csv("D:\IRCS\Control 2\Summary.csv", sep = ",")
+
+summary = pd.read_csv(input_sheet.SUMMARY_path, sep = ",")
 summary["product_group"] = summary["prod_code_First"]+"_"+summary["currency_First"]
 summary = summary.drop(columns=["prod_code_First","currency_First"])
 summary = summary.rename(columns={"pol_num_Count":"POLICY_REF_Count" })
@@ -150,9 +154,12 @@ summary["sum_assd_Sum"] = pd.to_numeric(
 summary = summary.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 
 summary
-mapping_dict = pd.read_excel("D:\Python\Code Trad.xlsx",sheet_name = ["Code"],engine="openpyxl")
-mapping_dict = mapping_dict["Code"]
+
+mapping_dict = pd.read_excel(input_sheet.CODE_LIBRARY_path,sheet_name = ["SPEC TRAD"],engine="openpyxl")
+mapping_dict = mapping_dict["SPEC TRAD"]
+
 mapping_dict
+
 full_stat_total = pd.concat([full_stat,summary])
 full_stat_total[["product", "currency"]] = full_stat_total["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 full_stat_total = full_stat_total.copy()
@@ -173,7 +180,7 @@ summary_full_stat_total = pd.DataFrame([{
 }])
 
 summary_full_stat_total
-campaign = pd.read_csv("D:\Python\Campaign data.csv",sep=";")
+campaign = pd.read_csv(input_sheet.LGC_LGM_CAMPAIGN_path,sep=";")
 campaign = campaign.drop(columns=["campaign_Period"])
 campaign
 tradcon = pd.read_csv("D:\IRCS\Control 2\LGC & LGM Campaign\RESERVE_TRADCONV_RWNB_IFRS_2025.csv",sep=";")
@@ -193,7 +200,7 @@ campaign_total = campaign_total.drop("POLICY_REF", axis=1)
 
 campaign_total
 
-lookup = pd.read_excel("D:\Python\Code Trad.xlsx",sheet_name = ["Campaign Lookup"],engine="openpyxl")
+lookup = pd.read_excel(input_sheet.CODE_LIBRARY_path,sheet_name = ["Campaign Lookup"],engine="openpyxl")
 lookup = lookup["Campaign Lookup"]
 campaign_total["SUM_INSURED"] = pd.to_numeric(campaign_total["SUM_INSURED"], errors="coerce")
 lookup["Max Bonus"] = pd.to_numeric(lookup["Max Bonus"], errors="coerce")
@@ -232,7 +239,7 @@ bsi = bsi["Export Worksheet"]
 bsi = bsi.drop(columns=["POLICY_NO","CP_PH_ID","CP_PH","PRODUCT_CODE","CP_INSURED_ID","LOANNO","CP_INSURED","POLICY_STATUS","UP_ATTR"])
 bsi = bsi.rename(columns = {"COVER_CODE":"product",
                             "PREM_ATTR":"anp"})
-code_bsi = pd.read_excel("D:\Python\Code Trad.xlsx",sheet_name = ["Code BSI"],engine="openpyxl")
+code_bsi = pd.read_excel(input_sheet.CODE_LIBRARY_path,sheet_name = ["Code BSI"],engine="openpyxl")
 code_bsi = code_bsi["Code BSI"]
 convert = dict(zip(code_bsi["Cover_code"], code_bsi["Grouping raw data"]))
 bsi["product_group"] = bsi["product"].map(convert).fillna(bsi["product"])
