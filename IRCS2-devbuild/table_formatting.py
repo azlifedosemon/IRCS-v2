@@ -117,11 +117,6 @@ for c, item in enumerate(sum_diff_percent.iloc[0]):
     
 ######################## Lookup table
 
-# test = UL.table2.iloc[:,0].tolist()
-# if len(test) == len(set(test)):
-#     print("ALL UNIQUE")
-# print(UL.table2)
-
 table1 = tst.full_lookup_table.iloc[:,0:15]
 table2 = tst.full_lookup_table.iloc[:,15:]
 for x in range(len(table1)):
@@ -140,9 +135,10 @@ ws.conditional_format('Q11:T999', {
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
+# NEW SHEET
 wsum = wb.add_worksheet("CONTROL_2_SUMMARY")
-wsum.set_column(2, 17, max_len - 9)
-wsum.set_column(18, 18, max_len)
+wsum.set_column(2, 17, max_len)
+wsum.set_column(18, 18, max_len + 5)
 
 for c,h in enumerate(header_table_notfreezed1):
     wsum.merge_range(1, 2 + 4 * c, 1, 2 + 4 * c + 3, h, header_table_notfreezed1_frm)
@@ -158,7 +154,30 @@ wsum.merge_range(1, 18, 2, 18, 'Remarks', wb.add_format({'bold': True, 'bg_color
                                 'bottom_color': 'white', 'left': 1,'left_color': 'white',
                                 'right': 1,'right_color': 'white', 'valign': 'vcenter'}))
 
+wsum.merge_range(1,1,2,1, 'Grouping', wb.add_format({'bold': True, 'bg_color': '#002060', 
+                                'pattern': 1, 'font_color': 'white', 
+                                'align': 'center', 'valign': 'center',
+                                'top': 2, 'top_color':'white', 'bottom': 2,
+                                'bottom_color': 'white', 'left': 1,'left_color': 'white',
+                                'right': 1,'right_color': 'white', 'valign': 'vcenter'}))
 
+currency_summary = tst.currency_totals
+for x in range(len(currency_summary)):
+    for c, item in enumerate(currency_summary.iloc[x]):
+        wsum.write(3 + x, c + 1, item, wb.add_format({'num_format': number_format}))
+
+for y in range(len(currency_summary)):
+    for x in range(len(header_table_notfreezed1)):
+        unicode = chr(75 + x)
+        formula = f'=IFERROR(round({unicode}{4 + y}/{chr(ord(unicode) - 4)}{4 + y} * 100, 1),0)'
+        wsum.write_formula(3 + y, 14 + x, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'}))
+ 
+wsum.conditional_format('O4:R999', {
+    'type':     'cell',
+    'criteria': '<',
+    'value':    0,
+    'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
+})
 
 wb.close()
 end_time = time.time()

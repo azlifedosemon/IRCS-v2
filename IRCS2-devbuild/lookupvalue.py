@@ -63,3 +63,23 @@ full_lookup_table['New Blank'] = ''              # every row gets an empty strin
 
 # 2) Pull out the currency suffix from product_group
 full_lookup_table['Currency'] = full_lookup_table['product_group'].str[-3:]
+
+# Assuming you’ve already built full_lookup_table...
+
+# 1) List out the numeric columns you care about:
+metrics = [
+    'pol_num', 'pre_ann', 'sum_assur', 'total_fund',
+    'POLICY_NO_Count', 'pre_ann_Sum', 'PR_SA_Sum', 'total_fund_Sum',
+    'POLICY_NO_Count_diff', 'pre_ann_diff', 'sum_assur_diff', 'total_fund_diff',
+]
+
+# 2) Group by Currency and sum:
+currency_totals = (
+    full_lookup_table
+      .groupby('Currency', sort=False)[metrics]
+      .sum()
+      .reset_index()
+)
+
+currency_totals['Currency'] = 'UL_' + currency_totals['Currency']
+
