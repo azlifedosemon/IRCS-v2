@@ -8,11 +8,11 @@ import lookupvalue as tst
 
 def elapsed_time(start,end):
     if round((end - start),0) > 60:
-        print(f"RUNTIME: {round((end_time - start_time) / 60, 2)} minutes")
+        print(f"\n RUNTIME: {round((end_time - start_time) / 60, 2)} minutes")
     elif (end - start) < 1:
-        print(f"RUNTIME: {round((end_time - start_time) * 1000, 2)} ms")
+        print(f"\n RUNTIME: {round((end_time - start_time) * 1000, 2)} ms")
     else:
-        print(f"RUNTIME: {round((end_time - start_time), 2)} second")
+        print(f"\n RUNTIME: {round((end_time - start_time), 2)} second")
 
 
 ############### EXCEL FORMATTING
