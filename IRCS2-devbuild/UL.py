@@ -7,18 +7,19 @@ ul_dv = ul_dv.drop(columns=["goc"])
 ul_dv_final = ul_dv.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 # print(ul_dv_final)
 
-code_ul = pd.read_excel("D:\Python\Code UL NEW.xlsx",sheet_name = ["Code UL NEW"],engine="openpyxl")
-code_ul = code_ul["Code UL NEW"]
+code_ul = pd.read_excel(input_script.CODE_LIBRARY_path,sheet_name = ["UL"],engine="openpyxl")
+code_ul = code_ul["UL"]
 # print(code_ul)
 
 ul_dv_final[["product", "currency"]] = ul_dv_final["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 ul_dv_final = ul_dv_final.drop(columns="product_group")
-ul_dv_final
  
+# print(ul_dv_final[["product",'currency']])
 convert = dict(zip(code_ul["Prophet Code"], code_ul["Flag Code"]))
 ul_dv_final["product"] = ul_dv_final["product"].map(convert).fillna(ul_dv_final["product"])
+# print(ul_dv_final[['product','currency']])
 ul_dv_final["product_group"] = ul_dv_final["product"].str.cat(ul_dv_final["currency"], sep="_")
- 
+
 ul_dv_final["pol_num"] = (
     ul_dv_final["pol_num"]
     .astype(str)                                
@@ -76,11 +77,11 @@ summary_ul_dv_final = pd.DataFrame([{
 }])
 
 # print(summary_ul_dv_final)
-mapping_dict = pd.read_excel("D:\Python\Code UL NEW.xlsx",sheet_name = ["Code"],engine="openpyxl")
-mapping_dict = mapping_dict["Code"]
+mapping_dict = pd.read_excel(input_script.CODE_LIBRARY_path,sheet_name = ["SPEC"],engine="openpyxl")
+mapping_dict = mapping_dict["SPEC"]
 mapping_dict
 
-full_stat = pd.read_csv("D:\IRCS\Control 2\IT_AZUL_FULL_Stat.csv", sep = ";")
+full_stat = pd.read_csv(input_script.IT_AZUL_path, sep = ";")
 full_stat["product_group"] = full_stat["PRODUCT_CODE"].str.replace("BASE_","",regex=False)+"_"+full_stat["PR_CURR"]
 full_stat[["product", "currency"]] = full_stat["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 full_stat = full_stat.copy()

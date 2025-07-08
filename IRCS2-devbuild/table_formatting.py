@@ -4,6 +4,7 @@ from IRCS2_input import xlsx_output
 import UL
 import time
 import pandas as pd
+import lookupvalue as tst
 
 def elapsed_time(start,end):
     if round((end - start),0) > 60:
@@ -17,7 +18,7 @@ def elapsed_time(start,end):
 ############### EXCEL FORMATTING
 start_time = time.time()
 wb = xlsxwriter.Workbook(xlsx_output, {'nan_inf_to_errors': True})
-ws = wb.add_worksheet('Data')
+ws = wb.add_worksheet('Summary_Checking_UL')
 number_format = '_(* #,##0_);_(* (#,##0)_);_(* "-"_);_(@_)'
 
 ws.freeze_panes(10, 4)
@@ -116,16 +117,16 @@ for c, item in enumerate(sum_diff_percent.iloc[0]):
     
 ######################## Lookup table
 
-test = UL.table2.iloc[:,0].tolist()
-if len(test) == len(set(test)):
-    print("ALL UNIQUE")
+# test = UL.table2.iloc[:,0].tolist()
+# if len(test) == len(set(test)):
+#     print("ALL UNIQUE")
+# print(UL.table2)
 
-
-table1 = UL.table2.iloc[:,0:13]
-table2 = UL.table2.iloc[:,13:]
+table1 = tst.full_lookup_table.iloc[:,0:15]
+table2 = tst.full_lookup_table.iloc[:,15:]
 for x in range(len(table1)):
     for c, item in enumerate(table1.iloc[x]):
-        ws.write(10 + x, 3 + c, item, wb.add_format({'num_format': number_format}))
+        ws.write(10 + x, c + 1, item, wb.add_format({'num_format': number_format}))
 for x in range(len(table2)):
     for c, item in enumerate(table2.iloc[x]):
         ws.write(10 + x, 16 + c, round(item,1), wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%'}))

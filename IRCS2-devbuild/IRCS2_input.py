@@ -1,68 +1,17 @@
-# Input Script
+import pandas as pd
+import openpyxl
 
-# 1) copy paste the file path, make sure the 
-#    files are in the same folder with this python program
-#    copy the path inside the ""
+CODE_LIBRARY_path = r'D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\Input Sheet.xlsx'
 
-# DV AZTRAD (CSV)
-DV_AZTRAD_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\DV_AZTRAD_Stat.csv"
+input_df = (pd.read_excel(CODE_LIBRARY_path, engine='openpyxl', sheet_name=['PATH INPUT']))['PATH INPUT']
+path_map = dict(zip(input_df['Category'], input_df['Path']))
 
-# DV AZUL (CSV)
-DV_AZUL_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\DV_AZUL_Stat.csv"
-
-# IT AZTRAD (CSV)
-IT_AZTRAD_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\IT_AZTRAD_FULL_Stat.csv"
-
-# IT AZUL (CSV)
-IT_AZUL_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\IT_AZUL_FULL_Stat.csv"
-
-#CODE LIBRARY
-CODE_LIBRARY_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2-devbuild\source\CODE LIBRARY.xlsx"
-
-# 2) enter the intended file name for the output file
-
-#OUTPUT PATH
-xlsx_filename = "test_file" #enter the intended file name without .xlsx
-xlsx_output = "\\".join([x for x in DV_AZTRAD_path.split('\\')][:len(DV_AZTRAD_path.split('\\')) - 1 ]) + "\\" + xlsx_filename + ".xlsx"
+DV_AZTRAD_path       = path_map.get('DV_AZTRAD')
+DV_AZUL_path         = path_map.get('DV_AZUL')
+IT_AZTRAD_path       = path_map.get('IT_AZTRAD')
+IT_AZUL_path         = path_map.get('IT_AZUL')
+xlsx_filename        = path_map.get('Output filename')
+xlsx_output          = "\\".join([x for x in DV_AZTRAD_path.split('\\')]
+                                 [:len(DV_AZTRAD_path.split('\\')) - 1 ]) + "\\" + xlsx_filename + ".xlsx"
 
 user_input = [DV_AZTRAD_path, DV_AZUL_path, IT_AZTRAD_path, IT_AZUL_path, CODE_LIBRARY_path, xlsx_output]
-
-
-
-
-
-# ARCHIVE IN CASE OF ACCIDENTAL DELETION
-# *to use archive:
-# 1) copy paste to code above and remove one # at the start of each line
-# 2) or copy paste to code above, select all the pasted archive, and press ctrl+/
-# 3) alternatively read: 
-#    https://www.geeksforgeeks.org/python/how-to-comment-out-a-block-of-code-in-python/
-
-# # [ARCHIVE] Input Script
-
-# # 1) copy paste the file path, make sure the 
-# #    files are in the same folder with this python program
-# #    copy the path inside the ""
-
-# # DV AZTRAD (CSV)
-# DV_AZTRAD_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\DV_AZTRAD_Stat.csv"
-
-# # DV AZUL (CSV)
-# DV_AZUL_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\DV_AZUL_Stat.csv"
-
-# # IT AZTRAD (CSV)
-# IT_AZTRAD_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\IT_AZTRAD_FULL_Stat.csv"
-
-# # IT AZUL (CSV)
-# IT_AZUL_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\IT_AZUL_FULL_Stat.csv"
-
-# #CODE LIBRARY
-# CODE_LIBRARY_path = r"D:\1. IRCS Automation\Control 2 DEV\IRCS\Control 2\CODE LIBRARY.xlsx"
-
-# # 2) enter the intended file name for the output file
-
-# #OUTPUT PATH
-# xlsx_filename = "test_file" #enter the intended file name without .xlsx
-# xlsx_output = "/".join([x for x in DV_AZTRAD_path.split('\\')][:len(DV_AZTRAD_path.split('\\')) - 1 ]) + "/" + xlsx_filename + ".xlsx"
-
-# user_input = [DV_AZTRAD_path, DV_AZUL_path, IT_AZTRAD_path, IT_AZUL_path, CODE_LIBRARY_path, xlsx_output]
