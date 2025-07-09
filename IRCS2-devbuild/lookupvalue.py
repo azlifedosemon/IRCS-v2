@@ -3,6 +3,7 @@ import IRCS2_input as input_script
 import xlsxwriter
 import UL
 import trad
+import numpy as np
 
 ul_dv = pd.read_csv(input_script.DV_AZUL_path)
 ul_dv = ul_dv.drop(columns=["goc"])
@@ -85,19 +86,43 @@ currency_totals = (
 currency_totals['Currency'] = 'UL_' + currency_totals['Currency']
 
 
-
-
-
+# AZTRAD SHEET
 
 trad_dv_metrics = trad.trad_dv_final.copy()
+trad_dv_metrics = trad_dv_metrics.drop(columns=['loan_sa'])
+trad_dv_metrics = trad_dv_metrics[
+    ['product_group', 'pol_num', 'sum_assd', 'pre_ann']
+]
+
 trad_stat_metrics = trad.full_stat_total.copy()
+trad_stat_metrics = trad_stat_metrics[
+    ['product_group', 'POLICY_REF_Count', 'sum_assd_Sum', 'pre_ann_Sum']
+]
+
 diff_dv_stat_metrics = trad.total.copy()
 diff_percent_metrics = trad.result_percent.copy()
 
-full_stat_total = trad.full_stat_total
+metrics = [trad_dv_metrics, trad_stat_metrics, diff_dv_stat_metrics, diff_percent_metrics]
+for metric in metrics:
+    metric['total_fund_sum'] = 0
+
+merged1 = pd.merge(trad_dv_metrics,trad_stat_metrics,on='product_group', how='outer')
+merged2 = pd.merge(diff_dv_stat_metrics, diff_percent_metrics, on= 'product_group', how= 'outer')
+merged3 = pd.merge(merged1, merged2, on= 'product_group', how= 'outer')
+
+trad_code = trad.original_trad[['product', 'product_group']]
+trad_code.rename(columns={'product_group': 'grouping DV'}, inplace= True)
+trad_code['product_group'] = trad.trad2['product_group']
+
+merged4 = pd.merge(trad_code, merged3, on= 'product_group', how= 'right')
+merged4['remarks'] = ''
+merged4['currency'] = merged4['product_group'].str[-3:]
+merged4.fillna(0, inplace= True)
+merged4.replace(np.inf, 0, inplace= True)
+
+agg_all = merged4.groupby('currency').sum(numeric_only=True).reset_index()
+agg_all['currency'] = 'TRAD_' + agg_all['currency']
 
 summary_diff_total_input = trad.summary_diff_total_input
 summary_diff_aztrad_output = trad.sum_assur_diff_aztrad_output # correct row 4
 summary_diff_percent = trad.Different_Percentage
-
-print(summary_diff_aztrad_output)

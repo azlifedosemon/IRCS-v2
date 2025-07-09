@@ -201,6 +201,9 @@ wtrad.write(9, 20, 'Remarks', header_table_notfreezed2_frm)
 sum_trad_dv_raw = trad.trad_dv.sum()
 clean_trad_dv_raw = sum_trad_dv_raw.iloc[1:len(sum_trad_dv_raw) - 1].tolist()
 clean_trad_dv_raw[1], clean_trad_dv_raw[2] = clean_trad_dv_raw[2], clean_trad_dv_raw[1]
+clean_trad_dv_raw.pop(0)
+x = clean_trad_dv_raw.pop(0)
+clean_trad_dv_raw.append(x)
 clean_trad_dv_raw.append(0)
 for c, item in enumerate(clean_trad_dv_raw):
     wtrad.write(2, c + 4, item, wb.add_format({'num_format': number_format}))
@@ -209,16 +212,23 @@ sum_trad_stat_raw = trad.summary_full_stat_total.sum()
 clean_trad_stat_raw = sum_trad_stat_raw.tolist()
 clean_trad_stat_raw.append(0)
 for c, item in enumerate(clean_trad_stat_raw):
-    wtrad.write(3, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
-    wtrad.write(5, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
+    wtrad.write(2, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
 
-sum_trad_dv_raw = trad.summary_trad_dv_final.sum()
-clean_trad_dv_raw = sum_trad_dv_raw.tolist()
-clean_trad_dv_raw.append(0)
-for c, item in enumerate(clean_trad_dv_raw):
+for c in range(len(header_table_notfreezed1)):
+    formula = f"=SUM({chr(73 + c)}11:{chr(73 + c)}897)"
+    wtrad.write(3, c + 4 * 2, formula, wb.add_format({'num_format': number_format}))
+    wtrad.write(5, c + 4 * 2, formula, wb.add_format({'num_format': number_format}))
+
+sum_trad_dv_final = trad.summary_trad_dv_final.sum()
+clean_trad_dv_final = sum_trad_dv_final.tolist()
+clean_trad_dv_final.append(0)
+for c, item in enumerate(clean_trad_dv_final):
     wtrad.write(3, c + 4, item, wb.add_format({'num_format': number_format}))
     wtrad.write(5, c + 4, item, wb.add_format({'num_format': number_format}))
 
+for c in range(len(clean_trad_stat_raw)):
+    formula = f"=SUM({chr(77 + c)}11:{chr(77 + c)}897)"
+    wtrad.write(5,c + 4 * 3, formula, wb.add_format({'num_format': number_format}))
 
 sum_trad_diff_raw = []
 for i in range(len(clean_trad_dv_raw)):
@@ -227,6 +237,16 @@ for i in range(len(clean_trad_dv_raw)):
 for c, item in enumerate(sum_trad_diff_raw):
     wtrad.write(2, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
 
+sum_diff_aztrad_output = trad.sum_diff_aztrad_output
+for c, item in enumerate(sum_diff_aztrad_output.iloc[0]):
+    wtrad.write(3, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
+    
+sum_diff_trad_percent = trad.Different_Percentage
+for c in range(len(header_table_notfreezed1)):
+    unicode = chr(77 + c)
+    formula = f'=IFERROR(round({unicode}{6}/{chr(ord(unicode) - 4)}{4} * 100, 1),0)'
+    wtrad.merge_range(2, 16 + c, 3, 16 + c, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%', 'bg_color': 'yellow', 'bold': True}))
+
 
 ################# DIFF ROW
 for x in range(1, len(header_table_notfreezed1)):
@@ -234,8 +254,24 @@ for x in range(1, len(header_table_notfreezed1)):
         unicode = chr(69 + (y + 4 * x) - 4)
         wtrad.write_formula(4, y + (4 * x), f'={unicode}3-{unicode}4', wb.add_format({'num_format': number_format,  'bg_color': '#92D050'}))
     
+################# LOOKUP TABLE
+table1 = tst.merged4.iloc[:,0:15]
+table2 = tst.merged4.iloc[:,15:]
+for x in range(len(table1)):
+    for c, item in enumerate(table1.iloc[x]):
+        wtrad.write(10 + x, c + 1, item, wb.add_format({'num_format': number_format}))
+for x in range(len(table2)):
+    for c, item in enumerate(table2.iloc[x]):
+        if type(item) == numpy.float64:
+            item = round(item,1)
+        wtrad.write(10 + x, 16 + c, item, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'}))
 
-
+wtrad.conditional_format('Q11:T999', {
+    'type':     'cell',
+    'criteria': '<',
+    'value':    0,
+    'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
+})
 
 # SUMMARY SHEET
 wsum = wb.add_worksheet("CONTROL_2_SUMMARY")
@@ -273,6 +309,17 @@ for y in range(len(currency_summary)):
         unicode = chr(75 + x)
         formula = f'=IFERROR(round({unicode}{4 + y}/{chr(ord(unicode) - 4)}{4 + y} * 100, 1),0)'
         wsum.write_formula(3 + y, 14 + x, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'}))
+ 
+currency_summary_trad = tst.agg_all
+for x in range(len(currency_summary_trad)):
+    for c, item in enumerate(currency_summary_trad.iloc[x]):
+        wsum.write(5 + x, c + 1, item, wb.add_format({'num_format': number_format}))
+
+for y in range(len(currency_summary_trad)):
+    for x in range(len(header_table_notfreezed1)):
+        unicode = chr(75 + x)
+        formula = f'=IFERROR(round({unicode}{6 + y}/{chr(ord(unicode) - 4)}{6 + y} * 100, 1),0)'
+        wsum.write_formula(5 + y, 14 + x, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'})) 
  
 wsum.conditional_format('O4:R999', {
     'type':     'cell',

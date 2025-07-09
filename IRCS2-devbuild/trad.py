@@ -11,13 +11,17 @@ code = code["TRAD"]
 
 trad_dv = pd.read_csv(input_sheet.DV_AZTRAD_path,sep = ",")
 
-trad_dv = trad_dv.drop(columns=["goc"])
-trad_dv_final = trad_dv.groupby(["product_group"],as_index=False).sum(numeric_only=True)
+trad_dv1 = trad_dv.drop(columns=["goc"])
+trad_dv_final = trad_dv1.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 trad_dv_final[["product", "currency"]] = trad_dv_final["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 trad_dv_final.drop(columns="product_group")
+
+original_trad = trad_dv_final.copy()
+
 convert = dict(zip(code["Prophet Code"], code["Flag Code"]))
 trad_dv_final["product"] = trad_dv_final["product"].map(convert).fillna(trad_dv_final["product"])
 trad_dv_final["product_group"]= trad_dv_final["product"].str.cat(trad_dv_final["currency"], sep="_")
+trad2 = trad_dv_final.copy()
 
 trad_dv_final["pol_num"] = (
     trad_dv_final["pol_num"]
@@ -174,7 +178,7 @@ full_stat_total = full_stat_total.drop(columns=["product","currency"])
 full_stat_total = full_stat_total.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 
 
-full_stat_total
+# print(full_stat_total)
 
 pol_e_full_stat_total = sum(full_stat_total["POLICY_REF_Count"])
 sa_if_m_full_stat_total = sum(full_stat_total["sum_assd_Sum"])
@@ -267,7 +271,9 @@ bonus = bonus.drop(["key", "calculated_bonus","Max Bonus"], axis=1)
 summary = bonus.drop(columns=["Policy No","campaign_type","product","PRODUCT_CODE"])
 summary["Grouping Raw Data"] = summary["COVER_CODE"].str.replace("BASE_","",regex=False)+"_"+summary["CURRENCY1"]
 summary = summary.groupby(["Grouping Raw Data"],as_index=False).sum(numeric_only=True)
-summary
+
+print(summary)
+
 summary[["product", "currency"]] = summary["Grouping Raw Data"].str.extract(r"(\w+)_([\w\d]+)")
 convert = dict(zip(code["Flag Code"], code["Prophet Code"]))
 summary["Grouping DV"] = summary["product"].map(convert).fillna(summary["product"])
@@ -275,7 +281,6 @@ summary = summary.drop(columns=["product","currency"])
 cols = ["Grouping Raw Data", "Grouping DV"] + [col for col in summary.columns if col not in ["Grouping Raw Data", "Grouping DV"]]
 summary = summary[cols]
 
-summary
 
 bsi = pd.read_excel(input_sheet.BSI_ATTRIBUSI_path, sheet_name = ["Export Worksheet"], engine="openpyxl")
 bsi = bsi["Export Worksheet"]
@@ -288,7 +293,7 @@ convert = dict(zip(code_bsi["Cover_code"], code_bsi["Grouping raw data"]))
 bsi["product_group"] = bsi["product"].map(convert).fillna(bsi["product"])
 bsi = bsi.groupby(["product_group"],as_index=False).sum(numeric_only=True)
 bsi["product_group"] = bsi["product_group"]+"_IDR"
-bsi
+
 summary = summary.rename(columns = {"Grouping Raw Data" : "product_group","Bonus SA":"sum_assd"})
 summary = summary.drop(columns = {"Grouping DV","SUM_INSURED","SA After Bonus"})
 
@@ -328,7 +333,7 @@ summary_diff_total_input = pd.DataFrame([{
     "anp_if_m_input": diff_anp_if_m_input,
 }])
 
-(summary_diff_total_input)
+# print(summary_diff_total_input)
 policy_count_diff_output = sum(total["policy_count_diff"])
 pre_ann_diff_aztrad_output= sum(total["anp_if_m_diff"])-sum(bsi["anp"])
 sum_assur_diff_aztrad_output= sum(total["sum_a_if_m_diff"])+sum(summary["sum_assd"])
@@ -339,7 +344,7 @@ sum_diff_aztrad_output = pd.DataFrame([{
     "anp_if_m_aztrad_output": pre_ann_diff_aztrad_output, 
 }])
 
-(sum_diff_aztrad_output)
+# print(sum_diff_aztrad_output)
 
 policy_count_diff_aztrad = sum(total["policy_count_diff"])
 pre_ann_diff_aztrad= sum(total["anp_if_m_diff"])
@@ -357,7 +362,6 @@ merged_3 = pd.merge(total, full_stat_total, on="product_group", how="outer",
                   suffixes=("_total", "_full_stat_total"))
 
 merged_3.fillna(0, inplace=True)
-
 
 result_percent = pd.DataFrame()
 result_percent["product_group"] = merged_3["product_group"]
