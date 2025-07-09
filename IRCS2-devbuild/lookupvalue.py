@@ -17,10 +17,10 @@ code_ul = code_ul["UL"]
 ul_dv_final[["product", "currency"]] = ul_dv_final["product_group"].str.extract(r"(\w+)_([\w\d]+)")
 ul_dv_final = ul_dv_final.drop(columns="product_group")
  
-a1 = (ul_dv_final[["product",'currency']])
+a1 = (ul_dv_final[["product",'currency']]).copy()
 convert = dict(zip(code_ul["Prophet Code"], code_ul["Flag Code"]))
 ul_dv_final["product"] = ul_dv_final["product"].map(convert).fillna(ul_dv_final["product"])
-a2 = (ul_dv_final[['product','currency']])
+a2 = (ul_dv_final[['product','currency']]).copy()
 ul_dv_final["product_group"] = ul_dv_final["product"].str.cat(ul_dv_final["currency"], sep="_")
 
 a1['product code'] = (

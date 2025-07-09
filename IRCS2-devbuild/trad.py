@@ -272,8 +272,6 @@ summary = bonus.drop(columns=["Policy No","campaign_type","product","PRODUCT_COD
 summary["Grouping Raw Data"] = summary["COVER_CODE"].str.replace("BASE_","",regex=False)+"_"+summary["CURRENCY1"]
 summary = summary.groupby(["Grouping Raw Data"],as_index=False).sum(numeric_only=True)
 
-print(summary)
-
 summary[["product", "currency"]] = summary["Grouping Raw Data"].str.extract(r"(\w+)_([\w\d]+)")
 convert = dict(zip(code["Flag Code"], code["Prophet Code"]))
 summary["Grouping DV"] = summary["product"].map(convert).fillna(summary["product"])
