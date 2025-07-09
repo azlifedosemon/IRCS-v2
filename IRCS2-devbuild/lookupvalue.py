@@ -108,13 +108,14 @@ for metric in metrics:
 
 merged1 = pd.merge(trad_dv_metrics,trad_stat_metrics,on='product_group', how='outer')
 merged2 = pd.merge(diff_dv_stat_metrics, diff_percent_metrics, on= 'product_group', how= 'outer')
-merged3 = pd.merge(merged1, merged2, on= 'product_group', how= 'outer')
+merged3 = pd.merge(merged1, merged2, on= 'product_group', how= 'left')
 
-trad_code = trad.original_trad[['product', 'product_group']]
+trad_code = trad.original_trad[['product', 'product_group']].copy()
 trad_code.rename(columns={'product_group': 'grouping DV'}, inplace= True)
-trad_code['product_group'] = trad.trad2['product_group']
+trad_code['product_group'] = trad.trad2['product_group'].copy()
+trad_code_unique = trad_code.drop_duplicates(subset=['product_group'])
 
-merged4 = pd.merge(trad_code, merged3, on= 'product_group', how= 'right')
+merged4 = pd.merge(trad_code_unique, merged3, on= 'product_group', how= 'right')
 merged4['remarks'] = ''
 merged4['currency'] = merged4['product_group'].str[-3:]
 merged4.fillna(0, inplace= True)

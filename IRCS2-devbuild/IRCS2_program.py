@@ -1,11 +1,12 @@
 import xlsxwriter
 from collections import defaultdict
-from IRCS2_input import xlsx_output
+from IRCS2_input import xlsx_output, IT_AZTRAD_path, SUMMARY_path
 import UL
 import time
 import lookupvalue as tst
 import numpy
 import trad
+import pandas as pd
 
 def elapsed_time(start,end):
     if round((end - start),0) > 60:
@@ -208,8 +209,64 @@ clean_trad_dv_raw.append(0)
 for c, item in enumerate(clean_trad_dv_raw):
     wtrad.write(2, c + 4, item, wb.add_format({'num_format': number_format}))
 
-sum_trad_stat_raw = trad.summary_full_stat_total.sum()
-clean_trad_stat_raw = sum_trad_stat_raw.tolist()
+def clean_stat_sum(it_path, sum_path):
+    
+    # 1) Load the two tables
+    df_full = pd.read_csv(
+    it_path,  # path to your full‐stat CSV
+    sep=";",                    # adjust if it’s not semicolon-delimited
+    encoding="utf-8",
+    on_bad_lines="skip",
+    )
+    df_sum = pd.read_csv(
+    sum_path,              # path to your Summary sheet export
+    sep=",",                    # adjust for your file’s delimiter
+    encoding="utf-8",
+    )
+
+    # 2) Compute the three “SUM(…)+SUM(…)-SUMIFS(…)" values:
+
+    # a) POLICY_REF_Count
+    total_full       = df_full["POLICY_REF_Count"].sum()
+    total_summary    = df_sum["pol_num_Count"].sum()
+    exclude_base_na  = df_full.loc[
+        df_full["PRODUCT_CODE"].str.startswith("BASE_NA"),
+        "POLICY_REF_Count"
+    ].sum()
+    policy_ref = total_full + total_summary - exclude_base_na
+
+    # b) pre_ann_Sum
+    pre_ann_full     = df_full["pre_ann_Sum"].sum()
+    pre_ann_summary  = df_sum["pre_ann_Sum"].sum()
+    exclude_base_na2 = df_full.loc[
+        df_full["PRODUCT_CODE"].str.startswith("BASE_NA"),
+        "pre_ann_Sum"
+    ].sum()
+    pre_ann = pre_ann_full + pre_ann_summary - exclude_base_na2
+
+    # c) sum_assd_Sum (sum assured)
+    assd_full        = df_full["sum_assd_Sum"].sum()
+    assd_summary     = df_sum["sum_assd_Sum"].sum()
+    exclude_base_na3 = df_full.loc[
+        df_full["PRODUCT_CODE"].str.startswith("BASE_NA"),
+        "sum_assd_Sum"
+    ].sum()
+    sum_assured = assd_full + assd_summary - exclude_base_na3
+
+    # 3) Pack into a one-row DataFrame
+    result = pd.DataFrame([{
+        "policy_ref":  policy_ref,
+        "pre_ann_sum": pre_ann,
+        "sum_assured": sum_assured
+    }])
+
+    return result 
+
+sum_trad_stat_raw = clean_stat_sum(IT_AZTRAD_path, SUMMARY_path)
+
+clean_trad_stat_raw_0 = sum_trad_stat_raw.values.tolist()
+clean_trad_stat_raw = clean_trad_stat_raw_0[0].copy()
+clean_trad_stat_raw[1], clean_trad_stat_raw[2] = clean_trad_stat_raw[2], clean_trad_stat_raw[1]
 clean_trad_stat_raw.append(0)
 for c, item in enumerate(clean_trad_stat_raw):
     wtrad.write(2, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
