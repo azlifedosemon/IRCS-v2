@@ -330,6 +330,42 @@ wtrad.conditional_format('Q11:T999', {
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
+wcampaign = wb.add_worksheet("SUMMARY_CAMPAIGN")
+wcampaign.set_column(1, 1, 14)
+wcampaign.set_column(2, 2, 8)
+wcampaign.set_column(3, 7, max_len)
+
+header_campaign = ["PRODUCT_CD", "CURRENCY", "GROUPING RAW DATA", "GROUPING DV", "SUM_ASSURED", "Bonus SA", "SA After Bonus"]
+header_campaign_frm = wb.add_format({'bold': True, 
+                                    'align': 'left',
+                                    'top': 1, 'top_color':'black', 'bottom': 1,
+                                    'bottom_color': 'black', 'left': 1,'left_color': 'black',
+                                    'right': 1,'right_color': 'black'})
+header_campaign_frm_tail = wb.add_format({'bold': True, 'bg_color': "#8CA5D8", 'pattern': 1, 
+                                    'align': 'left', 
+                                    'top': 1, 'top_color':'black', 'bottom': 1,
+                                    'bottom_color': 'black', 'left': 1,'left_color': 'black',
+                                    'right': 1,'right_color': 'black'})
+
+header_len = len(header_campaign)
+for c, h in enumerate(header_campaign):
+    wcampaign.write(1, c + 1, h, header_campaign_frm_tail)
+for c, h in enumerate(header_campaign[:header_len - 2]):
+    wcampaign.write(1,c + 1, h, header_campaign_frm)
+
+campaign_sum = trad.campaign_sum
+campaign_sum['Currency'] = campaign_sum['Grouping Raw Data'].str[-3:]
+campaign_sum['Product_Cd'] = "BASE_" + campaign_sum['Grouping Raw Data'].str[0:-4]
+cols = campaign_sum.columns.tolist()
+new_order = ['Product_Cd', 'Currency'] + [c for c in cols if c not in ('Product_Cd', 'Currency')]
+campaign_sum = campaign_sum[new_order]
+
+for x in range(len(campaign_sum)):
+    for c, item_ in enumerate(campaign_sum.iloc[x]):
+        wcampaign.write(2 + x, c + 1, item_, wb.add_format({'num_format': number_format,'top': 1, 'top_color':'black', 'bottom': 1,
+                                    'bottom_color': 'black', 'left': 1,'left_color': 'black',
+                                    'right': 1,'right_color': 'black'}))
+
 # SUMMARY SHEET
 wsum = wb.add_worksheet("CONTROL_2_SUMMARY")
 wsum.set_column(2, 17, max_len)
@@ -348,7 +384,7 @@ wsum.merge_range(1, 18, 2, 18, 'Remarks', wb.add_format({'bold': True, 'bg_color
                                 'top': 2, 'top_color':'white', 'bottom': 2,
                                 'bottom_color': 'white', 'left': 1,'left_color': 'white',
                                 'right': 1,'right_color': 'white', 'valign': 'vcenter'}))
-
+ 
 wsum.merge_range(1,1,2,1, 'Grouping', wb.add_format({'bold': True, 'bg_color': '#002060', 
                                 'pattern': 1, 'font_color': 'white', 
                                 'align': 'center', 'valign': 'center',

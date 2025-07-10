@@ -279,7 +279,7 @@ summary = summary.drop(columns=["product","currency"])
 cols = ["Grouping Raw Data", "Grouping DV"] + [col for col in summary.columns if col not in ["Grouping Raw Data", "Grouping DV"]]
 summary = summary[cols]
 
-print(summary)
+campaign_sum = summary.copy()
 
 bsi = pd.read_excel(input_sheet.BSI_ATTRIBUSI_path, sheet_name = ["Export Worksheet"], engine="openpyxl")
 bsi = bsi["Export Worksheet"]

@@ -34,8 +34,8 @@ IT_AZUL_path         = path_map.get('IT_AZUL')
 SUMMARY_path         = path_map.get('SUMMARY')
 LGC_LGM_CAMPAIGN_path= path_map.get('LGC_LGM_Campaign')
 BSI_ATTRIBUSI_path   = path_map.get('BSI Attribusi')
-TRADCONV_path = path_map.get('RESERVE_TRADCONV_RWNB_IFRS_2025')
-TRADSHA_path = path_map.get('RESERVE_TRADSHA_RWNB_IFRS_2025')
+TRADCONV_path        = path_map.get('RESERVE_TRADCONV_RWNB_IFRS')
+TRADSHA_path         = path_map.get('RESERVE_TRADSHA_RWNB_IFRS')
 xlsx_filename        = path_map.get('Output filename')
 xlsx_output          = "\\".join([x for x in DV_AZTRAD_path.split('\\')]
                                  [:len(DV_AZTRAD_path.split('\\')) - 1 ]) + "\\" + xlsx_filename + ".xlsx"
