@@ -200,21 +200,35 @@ tradcon_input = tradcon_input[tradcon_input['PRODUCT_CODE'].str.contains('lg[cm]
 tradcon_input = tradcon_input.groupby(["POLICY_REF"]).first().reset_index()
 tradcon_input
 
-def filter_by_quarter(input, reporting_quarter,financial_year):
+def filter_by_month(input, reporting_month,financial_year):
    
-    quarter = reporting_quarter
+    month = reporting_month
     year = financial_year
     
-    if quarter == 1:
-        cutoff = datetime(year, 4, 1)
-    elif quarter == 2:
-        cutoff = datetime(year, 7, 1) 
-    elif quarter == 3:
-        cutoff = datetime(year, 10, 1)  
-    elif quarter == 4:
-        cutoff = datetime(year + 1, 1, 1) 
-    else:
-        raise ValueError("Kuartal harus antara 1 sampai 4")
+    if month == 1:
+        cutoff = datetime(year, 2, 1)
+    elif month == 2:
+        cutoff = datetime(year, 3, 1) 
+    elif month == 3:
+        cutoff = datetime(year, 4, 1)  
+    elif month == 4:
+        cutoff = datetime(year, 5, 1) 
+    elif month == 5:
+        cutoff = datetime(year, 6, 1)
+    elif month == 6:
+        cutoff = datetime(year, 7, 1)
+    elif month == 7:
+        cutoff = datetime(year, 8, 1) 
+    elif month == 8:
+        cutoff = datetime(year, 9, 1)  
+    elif month == 9:
+        cutoff = datetime(year, 10, 1) 
+    elif month == 10:
+        cutoff = datetime(year, 11, 1)
+    elif month == 11:
+        cutoff = datetime(year, 12, 1)
+    elif month == 12:
+        cutoff = datetime(year + 1, 1, 1)
 
     input['POLICY_START_DATE'] = pd.to_datetime(input['POLICY_START_DATE'], format='%d-%b-%y')
 
@@ -222,7 +236,7 @@ def filter_by_quarter(input, reporting_quarter,financial_year):
 
     return filtered
 
-tradcon_cleaned = filter_by_quarter(tradcon_input, input_sheet.reporting_quarter, input_sheet.financial_year)
+tradcon_cleaned = filter_by_month(tradcon_input, input_sheet.reporting_month, input_sheet.financial_year)
 
 tradsha_input = pd.read_csv(input_sheet.TRADSHA_path, sep=';', encoding='utf-8', quoting=csv.QUOTE_NONE, on_bad_lines='skip')
 tradsha_input = tradsha_input[['POLICY_REF','PRODUCT_CODE','COVER_CODE','SUM_INSURED','CURRENCY1','POLICY_START_DATE']]
@@ -230,7 +244,7 @@ tradsha_input = tradsha_input[tradsha_input['PRODUCT_CODE'].str.contains('lg[cm]
 tradsha_input = tradsha_input.groupby(["POLICY_REF"]).first().reset_index()
 tradsha_input
 
-tradsha_cleaned = filter_by_quarter(tradsha_input,input_sheet.reporting_quarter, input_sheet.financial_year)
+tradsha_cleaned = filter_by_month(tradsha_input,input_sheet.reporting_month, input_sheet.financial_year)
 
 # spacer
 
