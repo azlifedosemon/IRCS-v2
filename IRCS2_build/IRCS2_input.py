@@ -25,7 +25,7 @@ CODE_LIBRARY_path = r'D:\1. IRCS Automation\Control 2 DEV\IRCS-v2\IRCS2_build\In
 input_df = (pd.read_excel(CODE_LIBRARY_path, engine='openpyxl', sheet_name=['PATH INPUT']))['PATH INPUT']
 path_map = dict(zip(input_df['Category'], input_df['Path']))
 
-reporting_quarter    = path_map.get('Reporting Quarter')
+reporting_month    = path_map.get('Reporting Month')
 financial_year       = path_map.get('Financial Year')
 DV_AZTRAD_path       = path_map.get('DV_AZTRAD')
 DV_AZUL_path         = path_map.get('DV_AZUL')
