@@ -125,6 +125,9 @@ dv_trad_total = dv_trad_total.groupby(["goc"],as_index=False).sum(numeric_only=T
 usd_mask = dv_trad_total["goc"].str.contains("USD",case = False,na = False)
 dv_trad_total.loc[usd_mask, 'sum_assd'] = dv_trad_total.loc[usd_mask, 'sum_assd'] * usd_rate
 dv_trad_total
+
+
+
 run_rafm_idr = pd.read_excel("D:\IRCS\Control 3\input\Data_Extraction_run4TRAD_Sha.xlsx",sheet_name = 'extraction_IDR',engine = 'openpyxl')
 run_rafm_idr = run_rafm_idr[['GOC','period','cov_units','pol_b']]
 mask_rafm = run_rafm_idr['period'].astype(str) == '0'
@@ -168,6 +171,7 @@ merged.fillna(0, inplace=True)
 merged['diff policies'] = merged['pol_num'] - merged['pol_b']
 merged['diff sa'] = merged['sum_assd'] - merged['cov_units']
 merged
+
 def filter_goc_by_code(df, code):
     tokens = [k for k in code.split('_') if k]
     mask = merged['goc'].apply(lambda x: all(token.lower() in str(x).lower() for token in tokens))

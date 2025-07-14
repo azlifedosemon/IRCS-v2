@@ -88,6 +88,8 @@ input_sheet     = pd.ExcelFile(INPUT_SHEET_PATH, engine= 'openpyxl')
 path_df         = pd.read_excel(input_sheet, 'INPUT_PATH')
 FILTER_TRAD     = pd.read_excel(input_sheet, 'FILTER_TRAD').fillna('')
 FILTER_UL       = pd.read_excel(input_sheet, 'FILTER_UL').fillna('')
+VARIABLE_DEF    = pd.read_excel(input_sheet, 'VARIABLE_DEF')
+var_map         = dict(zip(VARIABLE_DEF['Variable Name'], VARIABLE_DEF['Options']))
 path_map        = dict(zip(path_df['Category'], path_df['Path']))
 
 # Path input
@@ -96,6 +98,16 @@ financial_year      = get_value('Financial Year', path_map)
 dv_aztrad_csv       = get_value('DV_AZTRAD', path_map)
 excel_output        = get_output_path('DV_AZTRAD', path_map)
 
+
+# Fetch Filter
 ulfilter    = filter_processing(FILTER_UL)
 tradfilter  = filter_processing(FILTER_TRAD)
+
+
+# Fetch Variable
+option_channel      = [chnl for chnl in get_value('channel', var_map).split(',')]
+option_currency     = [curr for curr in get_value('currency', var_map).split(',')]
+option_portfolio    = [por for por in get_value('portfolio', var_map).split(',')]
+option_period       = [period for period in get_value('period', var_map).split(',')]
+
 end_time = time.time()
