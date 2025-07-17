@@ -44,16 +44,15 @@ def filtered_df(df, filter_dict):
         # Exclude filters
         for key in ('exclude_channel', 'exclude_currency', 'exclude_portfolio', 'exclude_cohort', 'exclude_period'):
             tokens = tokens_list(params.get(key))
-            for tok in tokens:
-                # Use regex boundaries: match "_TOKEN_" at start, middle, or end
-                pat = fr'(?:^|_){re.escape(tok.upper())}(?:_|$)'
+            if tokens:
+                pat = '|'.join(fr'(?:^|_){re.escape(tok.upper())}(?:_|$)' for tok in tokens)
                 mask &= ~goc_upper.str.contains(pat, na=False, regex=True)
 
         # Only filters (if set)
         for key in ('only_channel', 'only_currency', 'only_portfolio', 'only_cohort', 'only_period'):
             tokens = tokens_list(params.get(key))
-            for tok in tokens:
-                pat = fr'(?:^|_){re.escape(tok.upper())}(?:_|$)'
+            if tokens:
+                pat = '|'.join(fr'(?:^|_){re.escape(tok.upper())}(?:_|$)' for tok in tokens)
                 mask &= goc_upper.str.contains(pat, na=False, regex=True)
 
         filtered_runs[run_name] = df.loc[mask]
@@ -141,7 +140,7 @@ def build_cleaned_runs(filtered_df, usdidr, filter):
 
 # RAFM funct
 thread_count = os.cpu_count()
-WORKER = Path(__file__).resolve().parent / "rafm_worker.py"
+WORKER = Path(__file__).resolve().parent / "rafmtrad_worker.py"
 
 def run_rafm_worker(run, path):
     # invoke the *same* Python that's running this script

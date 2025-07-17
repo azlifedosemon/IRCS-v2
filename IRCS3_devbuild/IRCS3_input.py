@@ -6,7 +6,21 @@ from pathlib import Path
 
 start_time = time.time()
 
-INPUT_SHEET_PATH = r'D:\1. IRCS Automation\Control 3 DEV\IRCS-v2\IRCS3_devbuild\Input Sheet_IRCS3.xlsx'
+
+# ENTER THE SHEET PATH HERE
+
+INPUT_SHEET_PATH = r'D:\1. IRCS Automation\Control 3 DEV\IRCS3_devbuild\Input Sheet_IRCS3.xlsx'
+
+
+
+
+
+
+
+
+
+
+
 
 def get_value(key, mydict):
     return mydict.get(key)
@@ -14,8 +28,8 @@ def get_value(key, mydict):
 def get_local_folder(key, mydict):
     return "\\".join(mydict.get(key).split("\\")[:-1]) 
 
-def get_output_path(key, mydict):
-    filename = mydict.get('Output Trad')
+def get_output_path(filekey, key, mydict):
+    filename = mydict.get(filekey)
     proxy = get_local_folder(key, mydict)
     
     return proxy + "\\" + filename + '.xlsx'
@@ -41,7 +55,7 @@ def filter_processing(filter_df):
     for col in filter_df.columns:
         if col == 'run_name':
             continue
-        elif col == 'path_rafm':
+        elif col in ['path_dv','path_rafm', 'path_uvsg']:
             filter_df[col] = filter_df[col].astype(str).str.strip().replace('', pd.NA)
         elif col.strip().upper() == 'USDIDR':
             # Convert blank → NaN, then to float
@@ -63,19 +77,33 @@ def filter_processing(filter_df):
     .str.strip()
     )
     
+    name = ''
+    
+    if filter_df is FILTER_TRAD:
+        name = 'FILTER_TRAD'
+    elif filter_df is FILTER_UL:
+        name = 'FILTER_UL'
+    
     missing_print = []
     
+    if name == 'FILTER_UL':
+        missing_path_dv = filter_df.loc[
+            filter_df['path_dv'].isna(), 'run_name'
+        ].tolist()
+        if missing_path_dv:
+            missing_print.append(f"ERROR PATH: fill path_dv for {', '.join(missing_path_dv)} in {name}",)
+            
     missing_path_rafm = filter_df.loc[
         filter_df['path_rafm'].isna(), 'run_name'
     ].tolist()
     if missing_path_rafm:
-        missing_print.append(f"ERROR PATH: fill path_rafm for {', '.join(missing_path_rafm)}",)
+        missing_print.append(f"ERROR PATH: fill path_rafm for {', '.join(missing_path_rafm)} in {name}",)
                 
     missing_rate = filter_df.loc[
         filter_df['USDIDR'].isna(), 'run_name'
     ].tolist()
     if missing_rate:
-        missing_print.append(f"ERROR RATE: fill USDIDR rate for {', '.join(missing_rate)}",)
+        missing_print.append(f"ERROR RATE: fill USDIDR rate for {', '.join(missing_rate)} in {name}",)
     
     if missing_print:
         print()
@@ -90,7 +118,7 @@ def filter_processing(filter_df):
             for run, path_str in zip(filter_df['run_name'], filter_df[col]):
                 p = Path(path_str)
                 if not p.exists():
-                    print(f"ERROR FILEPATH: {col} for {run} not found at:\n  → {p}")
+                    print(f"ERROR FILEPATH: {col} for {run} in {name} not found at:\n  → {p}")
                     path_error = True
                 
     missing = missing_path_rafm or missing_rate or path_error
@@ -121,14 +149,14 @@ def filter_processing(filter_df):
                 f"{cat} -> {', '.join(sorted(vals))}"
                 for cat, vals in cat_map.items()
             )
-            print(f"• {run_name}: clash in {details}")
+            print(f"• {run_name} in {name}: clash in {details}")
         sys.exit(1)
 
     return filters
 
 
 input_sheet     = pd.ExcelFile(INPUT_SHEET_PATH, engine= 'openpyxl')
-path_df         = pd.read_excel(input_sheet, 'INPUT_PATH')
+path_df         = pd.read_excel(input_sheet, 'INPUT_SETTING')
 FILTER_TRAD     = pd.read_excel(input_sheet, 'FILTER_TRAD').fillna('')
 FILTER_UL       = pd.read_excel(input_sheet, 'FILTER_UL').fillna('')
 VARIABLE_DEF    = pd.read_excel(input_sheet, 'VARIABLE_DEF')
@@ -141,23 +169,23 @@ valuation_year      = get_value('Valuation Year', path_map)
 valuation_rate      = get_value('FX Rate Valdate', path_map)
 product_model       = get_value('Product Model', path_map)
 dv_aztrad_csv       = get_value('DV_AZTRAD', path_map)
-dv_azul_csv         = get_value('DV_AZUL', path_map)
-excel_output_trad   = get_output_path('DV_AZTRAD', path_map)
-excel_output_ul     = get_output_path('DV_AZUL', path_map)
 
-bool_trad = False
-bool_ul   = False
-
-if path_map['Output Trad']:
-    bool_trad = True
- 
-if path_map['Output UL']:
-    bool_ul = True
+excel_output_trad   = get_output_path('Output Trad', 'DV_AZTRAD', path_map)
+excel_output_ul     = get_output_path('Output UL', 'DV_AZUL', path_map)
 
 # Fetch Filter
 ulfilter    = filter_processing(FILTER_UL)
 tradfilter  = filter_processing(FILTER_TRAD)
+        
+        
+bool_trad = False
+bool_ul   = False
 
+if tradfilter:
+    bool_trad = True
+ 
+if ulfilter:
+    bool_ul = True
 
 # Fetch Variable
 option_channel      = [chnl for chnl in get_value('channel', var_map).split(',')]
