@@ -546,4 +546,4 @@ for run_name in ulfilter:
 # sys.exit()
 
 end_time = time.time()
-elapsed_time(start_time, end_time, 'UL processing')
+# elapsed_time(start_time, end_time, 'UL processing')
