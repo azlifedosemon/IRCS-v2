@@ -194,7 +194,27 @@ campaign = pd.read_csv(input_sheet.LGC_LGM_CAMPAIGN_path,sep=";")
 campaign = campaign.drop(columns=["campaign_Period"])
 campaign
 
-tradcon_input = pd.read_csv(input_sheet.TRADCONV_path, sep=';', encoding='utf-8', quoting=csv.QUOTE_NONE, on_bad_lines='skip')
+def read_csv_fallback(path, **kwargs):
+    """
+    Attempt to read as UTF-8, and if that fails, retry as Latin-1.
+    Persists all other kwargs (sep, engine, on_bad_lines, etc.).
+    """
+    for enc in ("utf-8", "latin-1"):
+        try:
+            return pd.read_csv(path, encoding=enc, **kwargs)
+        except UnicodeDecodeError:
+            # failed with this encoding—try the next one
+            continue
+    # if neither worked, re‑raise with the original traceback
+    return pd.read_csv(path, encoding="utf-8", **kwargs)
+
+tradcon_input = read_csv_fallback(
+    input_sheet.TRADCONV_path,
+    sep=";",
+    engine="python",
+    on_bad_lines="skip",    # or 'warn'
+    quoting=3               # csv.QUOTE_NONE
+)
 tradcon_input = tradcon_input[['POLICY_REF','PRODUCT_CODE','COVER_CODE','SUM_INSURED','CURRENCY1','POLICY_START_DATE']]
 tradcon_input = tradcon_input[tradcon_input['PRODUCT_CODE'].str.contains('lg[cm]', case=False, na=False)]
 tradcon_input = tradcon_input.groupby(["POLICY_REF"]).first().reset_index()
@@ -238,7 +258,13 @@ def filter_by_month(input, reporting_month,financial_year):
 
 tradcon_cleaned = filter_by_month(tradcon_input, input_sheet.reporting_month, input_sheet.financial_year)
 
-tradsha_input = pd.read_csv(input_sheet.TRADSHA_path, sep=';', encoding='utf-8', quoting=csv.QUOTE_NONE, on_bad_lines='skip')
+tradsha_input = read_csv_fallback(
+    input_sheet.TRADSHA_path,
+    sep=";",
+    engine="python",
+    on_bad_lines="skip",    # or 'warn'
+    quoting=3               # csv.QUOTE_NONE
+)
 tradsha_input = tradsha_input[['POLICY_REF','PRODUCT_CODE','COVER_CODE','SUM_INSURED','CURRENCY1','POLICY_START_DATE']]
 tradsha_input = tradsha_input[tradsha_input['PRODUCT_CODE'].str.contains('lg[cm]', case=False, na=False)]
 tradsha_input = tradsha_input.groupby(["POLICY_REF"]).first().reset_index()
