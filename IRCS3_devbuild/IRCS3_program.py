@@ -24,8 +24,9 @@ if input_sheet.bool_trad:
 
     ################################ CONTROL SUMMARY ################################
     header_sum_tablerow = ['DV', 'RAFM', 'Differences']
-    header_sum_tablerow2 = ['Total', 'Trad-Life inc. BTPN', 'Trad-Health non-YRT', 'Trad-Health YRT']
-
+    header_sum_tablerow2 = ['Total', 'Trad-Life inc. BTPN', 'Trad-Health non-YRT', 'Trad-Health YRT', 'Trad-C']
+    tablerow2_len = len(header_sum_tablerow2)
+    
     ws = wb.add_worksheet('Control and Summary')
 
     ws.freeze_panes(0, 1)
@@ -49,13 +50,13 @@ if input_sheet.bool_trad:
         ws.write(6 + i, 0, key, wb.add_format({'bold': True, 'bg_color': 'yellow'}))
 
     for c, item in enumerate(header_sum_tablerow):
-        ws.merge_range(4, 1 + (4 * c), 4, 4 + (4 * c), item, wb.add_format({'bold': True, 'align': 'center'}))
+        ws.merge_range(4, 1 + (tablerow2_len * c), 4, tablerow2_len + (tablerow2_len * c), item, wb.add_format({'bold': True, 'align': 'center'}))
 
-    ws.merge_range(4, 13, 5, 13, 'Notes', wb.add_format({'bold': True, 'align': 'center'}))
+    ws.merge_range(4, 16, 5, 16, 'Notes', wb.add_format({'bold': True, 'align': 'center'}))
 
     for i in range(len(header_sum_tablerow)):
         for c, item in enumerate(header_sum_tablerow2):
-            ws.write(5, c + 1 + (4 * i), item, wb.add_format({'bold': True, 'align':'center'}))
+            ws.write(5, c + 1 + (tablerow2_len * i), item, wb.add_format({'bold': True, 'align':'center'}))
 
     for i, run_name in enumerate(trad.tradfilter):
         ctrlsum = pd.DataFrame([trad.ctrlsum_dict[run_name]])
@@ -79,10 +80,12 @@ if input_sheet.bool_trad:
         df2         = trad.table2_df[run_name]
         df3         = trad.table3_df[run_name]
         df4         = trad.table4_df[run_name]
+        df5         = trad.table5_df[run_name]
         summary     = trad.summary_dict[run_name]
         summary2    = pd.DataFrame([trad.table2_sum[run_name]])
         summary3    = pd.DataFrame([trad.table3_sum[run_name]])
         summary4    = pd.DataFrame([trad.table4_sum[run_name]])
+        summary5    = pd.DataFrame([trad.table5_sum[run_name]])
         
         ################################ FORMATTING ################################    
         
@@ -92,24 +95,29 @@ if input_sheet.bool_trad:
         ws.set_column(9, 9, 40)
         ws.set_column(17, 23, 20)
         ws.set_column(17, 17, 40)
-        ws.set_column(25, 33, 20)
+        ws.set_column(25, 31, 20)
         ws.set_column(25, 25, 40)
+        ws.set_column(33, 39, 20)
+        ws.set_column(33, 33, 40)
         
         for c, item_ in enumerate(header_diff_tablerow):
             ws.write(2, 1 + c, item_, wb.add_format({'bold': True, 'underline': True}))
             ws.write(2, 9 + c, item_, wb.add_format({'bold': True, 'underline': True}))
             ws.write(2, 17 + c, item_, wb.add_format({'bold': True, 'underline': True}))
             ws.write(2, 25 + c, item_, wb.add_format({'bold': True, 'underline': True}))
+            ws.write(2, 33 + c, item_, wb.add_format({'bold': True, 'underline': True}))
                                 
         for r, item_ in enumerate(header_diff_tablecol):
             ws.write(3 + r, 1, item_, tablecol_fmt)
             ws.write(3 + r, 9, item_, tablecol_fmt)
             ws.write(3 + r, 17, item_, tablecol_fmt)
             ws.write(3 + r, 25, item_, tablecol_fmt)
+            ws.write(3 + r, 33, item_, tablecol_fmt)
         
         ws.write(3, 9, 'Total BTPN', tablecol_fmt)
         ws.write(3, 17, 'Total Health non-YRT', tablecol_fmt)
         ws.write(3, 25, 'Total Health YRT', tablecol_fmt)
+        ws.write(3, 33, 'Total C', tablecol_fmt)
 
             
         ################################ FORMATTING ################################
@@ -151,6 +159,16 @@ if input_sheet.bool_trad:
         for row in range(len(df4)):
             for c, item_ in enumerate(df4.iloc[row]):
                 ws.write(6 + row, 25 + c, item_, wb.add_format({'num_format': number_format}))
+        
+        for row in range(len(summary5)):
+            for c, item_ in enumerate(summary5.iloc[row]):
+                ws.write(3 + row, 34 + c, item_, wb.add_format({'num_format': number_format, 'bg_color': '#92D050', 'bold': True}))
+                ws.write(4, 34 + c, "", wb.add_format({'num_format': number_format, 'bg_color': '#92D050', 'bold': True}))
+                ws.write(5, 34 + c, "", wb.add_format({'num_format': number_format, 'bg_color': '#92D050', 'bold': True}))
+                
+        for row in range(len(df5)):
+            for c, item_ in enumerate(df5.iloc[row]):
+                ws.write(6 + row, 33 + c, item_, wb.add_format({'num_format': number_format}))
 
     wb.close()
 

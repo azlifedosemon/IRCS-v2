@@ -170,13 +170,16 @@ def build_rafm_subprocess(filters, max_workers = thread_count - 1):
 # Table funct
 def filter_goc_by_lob(df, lob):
     """
-    Filters df for rows whose 'goc' contains the substring _<lob>_ (e.g. '_L_').
+    Filters df for rows where 'goc':
+      • starts with '<LOB>_'   OR  
+      • contains '_<LOB>_' 
+    e.g. lob='L' matches 'L_...' and '..._L_...'
     If lob is empty or None, returns df unchanged.
     """
     if not lob:
         # No filtering needed
         return df
-    pat = f"{lob.upper()}_"
+    pat = fr"(^|_){lob.upper()}_"
     mask = df['goc'].str.contains(pat, case=False, na=False)
     return df[mask]
 
@@ -304,6 +307,21 @@ for run_name in tradfilter:
 # sys.exit()
 
 
+################################ TABLE 5 ################################
+
+table5_df = {}
+
+for run_name in tradfilter:
+    table_df            = filter_goc_by_lob(table_dfs[run_name], 'C')
+    table5_df[run_name] = table_df
+
+################################ TABLE 5 ################################
+
+
+# SPACER # 
+# sys.exit()
+
+
 ################################ TABLE 1 SUMMARY ################################
 
 table1_sum = {}
@@ -396,12 +414,35 @@ for run_name in tradfilter:
 # sys.exit()
 
 
+################################ TABLE 5 SUMMARY ################################
+
+table5_sum = {}
+
+for run_name in tradfilter:
+    
+    table5 = table5_df[run_name]
+    container_dict = {}
+    
+    table5_sum[run_name] = container_dict
+    for param in table5:
+        if param == 'goc':
+            continue
+        else:
+            container_dict[param] = table5[param].sum().item()
+
+################################ TABLE 5 SUMMARY ################################
+
+
+# SPACER # 
+# sys.exit()
+
+
 ################################ TABLE SUMMARY ################################
 
 row1_summary    = {}
 row2_summary    = {}
 summary_dict    = {}
-summary_lst     = [table1_sum, table2_sum, table3_sum, table4_sum]
+summary_lst     = [table1_sum, table2_sum, table3_sum, table4_sum, table5_sum]
 
 
 for run_name in tradfilter:
@@ -470,16 +511,19 @@ for run_name in tradfilter:
         'lbtpn_dv': table1_sum[run_name]['pol_num'] + table2_sum[run_name]['pol_num'],
         'xYRT_dv' : table3_sum[run_name]['pol_num'],
         'YRT_dv'  : table4_sum[run_name]['pol_num'],
+        'c_dv'    : table5_sum[run_name]['pol_num'],
         
         'total_rafm' : row1_summary[run_name]['pol_b'],
         'lbtpn_rafm' : table1_sum[run_name]['pol_b'] + table2_sum[run_name]['pol_b'],
         'xYRT_rafm'  : table3_sum[run_name]['pol_b'],
         'YRT_rafm'   : table4_sum[run_name]['pol_b'],
+        'c_rafm'     : table5_sum[run_name]['pol_b'],
         
         'diff_total' : row1_summary[run_name]['diff policies'],
         'diff_lbtpn' : table1_sum[run_name]['diff policies'] + table2_sum[run_name]['diff policies'],
         'diff_xYRT'  : table3_sum[run_name]['diff policies'],
         'diff_YRT'   : table4_sum[run_name]['diff policies'],
+        'diff_c'     : table5_sum[run_name]['diff policies'],
         'empty'      : "",
         'usdidr'     : usdidr[run_name]
     }
