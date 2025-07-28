@@ -4,7 +4,6 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 import re
 from openpyxl import load_workbook
-import time
 
 columns_to_sum_argo = [
     'prm_inc','lrc_cl_ins','lrc_cl_inv','r_exp_m','r_acq_cost','cov_units','DAC_COV_UNITS','dac','exp_acq',

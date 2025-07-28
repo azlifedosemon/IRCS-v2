@@ -4,7 +4,6 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 import re
 from openpyxl import load_workbook
-import time
 
 ############################## ARGO ###############################
 
