@@ -187,7 +187,7 @@ def filter_goc_by_lob(df, lob):
 
 
 ################################ DV PROCESSING ################################
-dv_trad = pd.read_csv(input_sheet.dv_aztrad_csv, sep= ';', decimal= '.')
+dv_trad = pd.read_csv(input_sheet.dv_aztrad_csv, sep= None, engine= 'python', decimal= '.')
 tradfilter = input_sheet.tradfilter
 
 # DROP REDUNDANCY IN DATA FRAME
