@@ -28,7 +28,7 @@ ws = wb.add_worksheet('Summary_Checking_UL')
 
 ws.freeze_panes(10, 4)
 
-headers_summary = ['Items', 'Total Input from csv', 'Total output in summary', 'Diff']
+headers_summary = ['Items', 'Total Input from csv', 'Total output in summary', 'Diff','AZUL']
 
 headers_sum_dict = defaultdict(int)
 for h in headers_summary:
@@ -114,6 +114,18 @@ for x in range(1, len(header_table_notfreezed1)):
         unicode = chr(69 + (y + 4 * x) - 4)
         ws.write_formula(4, y + (4 * x), f'={unicode}3-{unicode}4', wb.add_format({'num_format': number_format,  'bg_color': '#92D050'}))
     
+######################### Row 6
+sum_ul_dv = UL.summary_ul_dv_final
+for c, item in enumerate(sum_ul_dv.iloc[0]):
+    ws.write(5, c + 4, item, wb.add_format({'num_format': number_format}))
+
+sum_full_stat = UL.summary_full_stat_total
+for c, item in enumerate(sum_full_stat.iloc[0]):
+    ws.write(5, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
+
+sum_diff_total = UL.summary_diff_total
+for c, item in enumerate(sum_diff_total.iloc[0]):
+    ws.write(5, c + 4 * 3, item, wb.add_format({'num_format': number_format}))
 
 ######################## Diff percentage
 sum_diff_percent = UL.Different_Percentage_of_Checking_Result_to_Raw_Data

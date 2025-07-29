@@ -77,29 +77,38 @@ def process_input_file(file_path):
         print(f"   - {sheet}")
 
 
-def main(input_folder):
+def main(input_path):
     start_time = time.time()
 
-    files = [
-        os.path.join(input_folder, fname)
-        for fname in os.listdir(input_folder)
-        if fname.endswith(".xlsx") and not fname.startswith("~$")
-    ]
+    if os.path.isfile(input_path):
+        files = [input_path]
+    elif os.path.isdir(input_path):
 
-    if not files:
-        print("📂 Tidak ada file .xlsx yang ditemukan di folder input.")
+        files = [
+            os.path.join(input_path, fname)
+            for fname in os.listdir(input_path)
+            if fname.endswith(".xlsx") and not fname.startswith("~$")
+        ]
+    else:
+        print(f"❌ Path tidak ditemukan atau tidak valid: {input_path}")
         return
 
-    print(f"🔧 Memproses {len(files)} file secara paralel...\n")
+    if not files:
+        print("📂 Tidak ada file .xlsx yang ditemukan.")
+        return
 
-    with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(process_input_file, f) for f in files]
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                print(f"❌ Error saat memproses file: {e}")
+    print(f"🔧 Memproses {len(files)} file...\n")
+
+    if len(files) == 1:
+        process_input_file(files[0])
+    else:
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(process_input_file, f) for f in files]
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"❌ Error saat memproses file: {e}")
 
     end_time = time.time()
-    duration = end_time - start_time
-    print(f"\n⏲️ Total waktu proses: {duration:.2f} detik")
+    print(f"\n⏲️ Total waktu proses: {end_time - start_time:.2f} detik")
