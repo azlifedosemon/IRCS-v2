@@ -186,12 +186,17 @@ def main(params):
 
     for idx, row in sum_rows.iterrows():
         rafm_value = row['RAFM File Name']
-        keyword = rafm_value.split('SUM_')[-1]
-        pattern = re.escape(keyword).replace("-", "[-_]?")
-        matched_rows = cf_rafm_merge[cf_rafm_merge['ARGO File Name'].fillna('').str.contains(pattern, case=False, regex=True)]
-        totals = matched_rows[numeric_cols].sum()
-        for col in numeric_cols:
-            cf_rafm_merge.at[idx, col] = totals[col]
+
+        if 'SUM_' in rafm_value:
+            keyword = rafm_value.split('SUM_')[-1]
+
+            pattern = re.escape(keyword).replace("-", "[-_]?")
+            matched_rows = cf_rafm_merge[cf_rafm_merge['ARGO File Name'].fillna('').str.contains(pattern, case=False, regex=True)]
+
+            total_values = matched_rows[numeric_cols].sum()
+
+            for col in numeric_cols:
+                cf_rafm_merge.at[idx, col] = total_values[col]
 
     cf_rafm = cf_rafm_merge.drop(columns=['ARGO File Name'])
     cf_rafm['dac_cov_units'] = cf_rafm['cov_units']
