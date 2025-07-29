@@ -59,6 +59,11 @@ ul_dv_final["total_fund"] = pd.to_numeric(
 )
  
 ul_dv_final = ul_dv_final.groupby(["product_group"],as_index=False).sum(numeric_only=True)
+cols = list(ul_dv_final.columns)
+pre_idx = cols.index('pre_ann')
+sum_idx = cols.index('sum_assur')
+cols[pre_idx], cols[sum_idx] = cols[sum_idx], cols[pre_idx]
+ul_dv_final = ul_dv_final[cols]
  
 pol_e_ul_dv_final = sum(ul_dv_final["pol_num"])
 sa_if_m_ul_dv_final = sum(ul_dv_final["sum_assur"])
@@ -130,6 +135,11 @@ full_stat["total_fund_Sum"] = pd.to_numeric(
 )
 
 full_stat = full_stat.groupby(["product_group"],as_index=False).sum(numeric_only=True)
+cols = list(full_stat.columns)
+pre_idx = cols.index('pre_ann_Sum')
+sum_idx = cols.index('PR_SA_Sum')
+cols[pre_idx], cols[sum_idx] = cols[sum_idx], cols[pre_idx]
+full_stat = full_stat[cols]
 
 pol_e_full_stat_total = sum(full_stat["POLICY_NO_Count"])
 sa_if_m_full_stat_total = sum(full_stat["PR_SA_Sum"])
@@ -165,8 +175,8 @@ merged.fillna(0, inplace=True)
 result = pd.DataFrame()
 result["product_group"] = merged["product_group"]
 result["POLICY_NO_Count_diff"] = merged["pol_num"] - merged["POLICY_NO_Count"]
-result["pre_ann_diff"] = merged["pre_ann"] - merged["pre_ann_Sum"]
 result["sum_assur_diff"] = merged["sum_assur"] - merged["PR_SA_Sum"]
+result["pre_ann_diff"] = merged["pre_ann"] - merged["pre_ann_Sum"]
 result["total_fund_diff"] = merged["total_fund"] - merged["total_fund_Sum"]
 
 table1 = pd.merge(merged, result, on="product_group", how='outer')
@@ -180,8 +190,8 @@ merged_2.fillna(0, inplace=True)
 result_percent = pd.DataFrame()
 result_percent["product_group"] = merged_2["product_group"]
 result_percent["policy_count_percent"] = merged_2["POLICY_NO_Count_diff"]/merged_2["POLICY_NO_Count"]*100
-result_percent["pre_ann_percent"] = merged_2["pre_ann_diff"]/merged_2["pre_ann_Sum"]*100
 result_percent["sum_assur_percent"] = merged_2["sum_assur_diff"] /merged_2["PR_SA_Sum"]*100
+result_percent["pre_ann_percent"] = merged_2["pre_ann_diff"]/merged_2["pre_ann_Sum"]*100
 result_percent["total_fund_percent"] = merged_2["total_fund_diff"] /merged_2["total_fund_Sum"]*100
 
 result_percent.replace(np.inf, 0, inplace=True)
