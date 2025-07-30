@@ -124,6 +124,7 @@ def main(params):
 
     folder_path_argo = path_map.get('argo', '')
     folder_path_rafm = path_map.get('rafm', '')
+    rafm_manual_path = path_map.get('rafm manual', '')
 
     file_paths_argo = [f for f in glob.glob(os.path.join(folder_path_argo, '*.xlsx')) if not os.path.basename(f).startswith('~$')]
     with ProcessPoolExecutor() as executor:
@@ -145,35 +146,41 @@ def main(params):
             summary_rows_rafm.append(result)
 
     all_runs = ['11', '21', '31', '41']
+
+    original_data_by_file = {row['File_Name']: row.copy() for row in summary_rows_rafm}
+
+    from collections import defaultdict
+    grouped_files = defaultdict(dict)
+
     for row in summary_rows_rafm:
         file_name = row['File_Name']
-        if "run21" in file_name:
-            prefix = file_name.split("run21")[0]
-            found_rows = []
+        for run in all_runs:
+            if f"run{run}" in file_name:
+                prefix = file_name.split(f"run{run}")[0]
+                grouped_files[prefix][run] = file_name
+                break 
 
-            for check_row in summary_rows_rafm:
-                check_name = check_row['File_Name']
-                if check_name.startswith(prefix):
-                    for run_num in all_runs:
-                        if f"run{run_num}" in check_name:
-                            if run_num == '21' and check_name == file_name:
-                                found_rows.append(check_row)
-                                break
-                            elif run_num != '21':
-                                found_rows.append(check_row)
-                                break
+    for prefix, run_map in grouped_files.items():
+        present_runs = sorted(run_map.keys()) 
 
-            if len(found_rows) >= 2:
-                consolidated_sums = {col: 0 for col in columns_to_sum_rafm}
-                for found_row in found_rows:
-                    for col in columns_to_sum_rafm:
-                        consolidated_sums[col] += found_row.get(col, 0)
+        for target_run in present_runs:
+            target_file = run_map[target_run]
 
-                for i, row in enumerate(summary_rows_rafm):
-                    if row['File_Name'] == file_name:
-                        for col in columns_to_sum_rafm:
-                            summary_rows_rafm[i][col] = consolidated_sums[col]
-                        break
+
+            runs_to_sum = [r for r in all_runs if r <= target_run and r in run_map]
+
+            total_sum = {col: 0 for col in columns_to_sum_rafm }
+            for run in runs_to_sum:
+                file = run_map[run]
+                data_row = original_data_by_file[file]
+                for col in total_sum:
+                    total_sum[col] += data_row.get(col, 0)
+
+            for i, row in enumerate(summary_rows_rafm):
+                if row['File_Name'] == target_file:
+                    for col in total_sum:
+                        summary_rows_rafm[i][col] = total_sum[col]
+                    break
 
     cf_rafm_1 = pd.DataFrame(summary_rows_rafm)
     cf_rafm_1 = cf_rafm_1[['File_Name'] + [col for col in cf_rafm_1.columns if col != 'File_Name']]
@@ -201,7 +208,23 @@ def main(params):
     cf_rafm = cf_rafm_merge.drop(columns=['ARGO File Name'])
     cf_rafm['dac_cov_units'] = cf_rafm['cov_units']
 
-    rafm_merged = pd.merge(code, cf_rafm.groupby('RAFM File Name', as_index=False).first(), on="RAFM File Name", how="left").fillna(0)
+    rafm_manual = pd.read_excel(rafm_manual_path, sheet_name = 'Sheet1',engine = 'openpyxl')
+    rafm_manual = rafm_manual.drop (columns = ['No'])
+    rafm_manual = rafm_manual.fillna(0)
+
+    cf_rafm_2 = cf_rafm.groupby('RAFM File Name', as_index=False).first()
+    rafm_manual_1 = rafm_manual.groupby('RAFM File Name', as_index=False).first()
+    rafm = pd.merge(cf_rafm_2, rafm_manual_1, on='RAFM File Name', how="left", suffixes=('_cf', '_manual')).fillna(0)
+    for col in cols_to_compare:
+        col_cf = f"{col}_cf"             
+        col_manual = f"{col}_manual" 
+
+        if col_cf in rafm.columns and col_manual in rafm.columns:
+            rafm[f'{col}'] = rafm[col_cf] - rafm[col_manual] 
+    cols_final = ['RAFM File Name']+ [f'{col}' for col in cols_to_compare]
+    rafm = rafm[cols_final]
+    rafm = rafm.fillna(0)
+    rafm_merged = pd.merge(code, rafm.groupby('RAFM File Name', as_index=False).first(), on="RAFM File Name", how="left").fillna(0)
     final = pd.merge(rafm_merged, cf_argo, on='ARGO File Name', how="left", suffixes=('_merged', '_argo'))
 
     for col in cols_to_compare:
@@ -244,9 +267,11 @@ def main(params):
     cf_argo.insert(0, 'No', index_labels)
     cf_argo = pd.concat([cf_argo, sign_logic], ignore_index=True)
     cf_argo.loc[cf_argo.index[-1], 'ARGO File Name'] = 'Sign Logic'
-    index_labels_rafm = list(range(0, len(cf_rafm)))
+    index_labels_rafm = list(range(1, len(cf_rafm) + 1))
     cf_rafm.insert(0, 'No', index_labels_rafm)
-    index_labels_final= list(range(0, len(final)))
+    index_labels_manual= list(range(1, len(rafm_manual)+1))
+    rafm_manual.insert(0, 'No', index_labels_manual)
+    index_labels_final= list(range(1, len(final)+1))
     final.insert(0, 'No', index_labels_final)
 
     control['check sign'] = ''
@@ -263,6 +288,7 @@ def main(params):
         'Code':code,
         "CF ARGO REAS": cf_argo,
         "RAFM Output REAS": cf_rafm,
+        "RAFM Manual REAS" : rafm_manual,
         "Checking Summary REAS": final
     }
 if __name__ == '__main__':

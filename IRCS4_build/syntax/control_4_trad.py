@@ -295,35 +295,40 @@ def main(params):
 
     all_runs = ['11', '21', '31', '41']
 
+    original_data_by_file = {row['File_Name']: row.copy() for row in combined_summary}
+
+    from collections import defaultdict
+    grouped_files = defaultdict(dict)
+
     for row in combined_summary:
         file_name = row['File_Name']
-        if "run21" in file_name:
-            prefix = file_name.split("run21")[0]
-            found_rows = []
+        for run in all_runs:
+            if f"run{run}" in file_name:
+                prefix = file_name.split(f"run{run}")[0]
+                grouped_files[prefix][run] = file_name
+                break 
 
-            for check_row in combined_summary:
-                check_name = check_row['File_Name']
-                if check_name.startswith(prefix):
-                    for run_num in all_runs:
-                        if f"run{run_num}" in check_name:
-                            if run_num == '21' and check_name == file_name:
-                                found_rows.append(check_row)
-                                break
-                            elif run_num != '21':
-                                found_rows.append(check_row)
-                                break
+    for prefix, run_map in grouped_files.items():
+        present_runs = sorted(run_map.keys()) 
 
-            if len(found_rows) >= 2:
-                consolidated_sums = {col: 0 for col in columns_to_sum_rafm + additional_columns}
-                for found_row in found_rows:
-                    for col in columns_to_sum_rafm + additional_columns:
-                        consolidated_sums[col] += found_row.get(col, 0)
+        for target_run in present_runs:
+            target_file = run_map[target_run]
 
-                for i, row in enumerate(combined_summary):
-                    if row['File_Name'] == file_name:
-                        for col in columns_to_sum_rafm + additional_columns:
-                            combined_summary[i][col] = consolidated_sums[col]
-                        break
+
+            runs_to_sum = [r for r in all_runs if r <= target_run and r in run_map]
+
+            total_sum = {col: 0 for col in columns_to_sum_rafm + additional_columns}
+            for run in runs_to_sum:
+                file = run_map[run]
+                data_row = original_data_by_file[file]
+                for col in total_sum:
+                    total_sum[col] += data_row.get(col, 0)
+
+            for i, row in enumerate(combined_summary):
+                if row['File_Name'] == target_file:
+                    for col in total_sum:
+                        combined_summary[i][col] = total_sum[col]
+                    break
 
     cf_rafm_1 = pd.DataFrame(combined_summary)
     cols = ['File_Name'] + [col for col in cf_rafm_1.columns if col != 'File_Name']
@@ -513,9 +518,9 @@ def main(params):
     cf_argo.insert(0, 'No', index_labels)
     cf_argo = pd.concat([cf_argo, sign_logic], ignore_index=True)
     cf_argo.loc[cf_argo.index[-1], 'ARGO File Name'] = 'Sign Logic'
-    index_labels_manual= list(range(0, len(rafm_manual)))
+    index_labels_manual= list(range(1, len(rafm_manual)+1))
     rafm_manual.insert(0, 'No', index_labels_manual)
-    index_labels_final= list(range(0, len(final)))
+    index_labels_final= list(range(1, len(final)+1))
     final.insert(0, 'No', index_labels_final)
 
     control['check sign'] = ''
@@ -537,9 +542,9 @@ def main(params):
         other_cols_uvsg = [col for col in uvsg.columns if col not in last_3_cols and col != 'UVSG File Name']
         uvsg= uvsg[['UVSG File Name'] + last_3_cols + other_cols_uvsg]
     
-    index_labels_rafm = list(range(0, len(cf_rafm)))
+    index_labels_rafm = list(range(1, len(cf_rafm)+1))
     cf_rafm.insert(0, 'No', index_labels_rafm)
-    index_labels_uvsg= list(range(0, len(uvsg)))
+    index_labels_uvsg= list(range(1, len(uvsg)+1))
     uvsg.insert(0, 'No', index_labels_uvsg)
     return {
         'Control':control,

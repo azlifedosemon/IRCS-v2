@@ -184,18 +184,42 @@ def main(params):
         combined_row = {**main_row, **add_row}
         combined_summary.append(combined_row)
 
+    all_runs = ['11', '21', '31', '41']
+
+    original_data_by_file = {row['File_Name']: row.copy() for row in combined_summary}
+
+    from collections import defaultdict
+    grouped_files = defaultdict(dict)
+
     for row in combined_summary:
         file_name = row['File_Name']
-        if "run21" in file_name:
-            prefix = file_name.split("run21")[0]
-            found_rows = [
-                r for r in combined_summary
-                if r['File_Name'].startswith(prefix)
-                and any(f"run{n}" in r['File_Name'] for n in all_runs)
-            ]
-            if len(found_rows) >= 2:
-                for col in columns_to_sum_rafm + additional_columns:
-                    row[col] = sum(r.get(col, 0) for r in found_rows)
+        for run in all_runs:
+            if f"run{run}" in file_name:
+                prefix = file_name.split(f"run{run}")[0]
+                grouped_files[prefix][run] = file_name
+                break 
+
+    for prefix, run_map in grouped_files.items():
+        present_runs = sorted(run_map.keys()) 
+
+        for target_run in present_runs:
+            target_file = run_map[target_run]
+
+
+            runs_to_sum = [r for r in all_runs if r <= target_run and r in run_map]
+
+            total_sum = {col: 0 for col in columns_to_sum_rafm + additional_columns}
+            for run in runs_to_sum:
+                file = run_map[run]
+                data_row = original_data_by_file[file]
+                for col in total_sum:
+                    total_sum[col] += data_row.get(col, 0)
+
+            for i, row in enumerate(combined_summary):
+                if row['File_Name'] == target_file:
+                    for col in total_sum:
+                        combined_summary[i][col] = total_sum[col]
+                    break
 
     cf_rafm = pd.DataFrame(combined_summary).rename(columns={'File_Name': 'RAFM File Name'})
     cf_rafm_merge = pd.merge(code, cf_rafm, on="RAFM File Name", how="left").fillna(0)
@@ -280,9 +304,9 @@ def main(params):
     cf_argo.insert(0, 'No', index_labels)
     cf_argo = pd.concat([cf_argo, sign_logic], ignore_index=True)
     cf_argo.loc[cf_argo.index[-1], 'ARGO File Name'] = 'Sign Logic'
-    index_labels_manual= list(range(0, len(rafm_manual)))
+    index_labels_manual= list(range(1, len(rafm_manual)+1))
     rafm_manual.insert(0, 'No', index_labels_manual)
-    index_labels_final= list(range(0, len(final)))
+    index_labels_final= list(range(1, len(final)+1))
     final.insert(0, 'No', index_labels_final)
 
     control['check sign'] = ''
@@ -297,7 +321,7 @@ def main(params):
         last_3_cols = cf_rafm.columns[-3:].tolist()
         other_cols = [col for col in cf_rafm.columns if col not in last_3_cols and col != 'RAFM File Name']
         cf_rafm = cf_rafm[['RAFM File Name'] + last_3_cols + other_cols]
-    index_labels_rafm = list(range(0, len(cf_rafm)))
+    index_labels_rafm = list(range(1, len(cf_rafm)+1))
     cf_rafm.insert(0, 'No', index_labels_rafm)
     return {
         'Control':control,

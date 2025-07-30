@@ -97,7 +97,7 @@ def main(input_path):
         print("📂 Tidak ada file .xlsx yang ditemukan.")
         return
 
-    print(f"🔧 Memproses {len(files)} file...\n")
+    print(f"🔧 Memproses {len(files)} file secara paralel...\n")
 
     if len(files) == 1:
         process_input_file(files[0])
