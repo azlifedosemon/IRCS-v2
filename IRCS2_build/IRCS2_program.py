@@ -82,7 +82,6 @@ for c, item in enumerate(clean_ul_dv_raw):
 
 sum_full_stat_raw = UL.full_stat.sum()
 clean_stat_raw = sum_full_stat_raw.iloc[1:].tolist()
-clean_stat_raw[1], clean_stat_raw[2] = clean_stat_raw[2], clean_stat_raw[1]
 for c, item in enumerate(clean_stat_raw):
     ws.write(2, c + 4 * 2, item, wb.add_format({'num_format': number_format}))
 
@@ -433,7 +432,7 @@ wsum.conditional_format('O4:R999', {
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
-w_bsi = wb.add_worksheet("BSI")
+w_bsi = wb.add_worksheet("Summary BSI")
 
 w_bsi.set_column(0, 0, 14) 
 w_bsi.set_column(1, 1, 18)   
@@ -447,7 +446,7 @@ header_format = wb.add_format({
 })
 
 cell_format_str = wb.add_format({'border': 1})
-cell_format_num = wb.add_format({'num_format': '0.000000E+00', 'border': 1}) 
+cell_format_num = wb.add_format({'num_format': '#,##0', 'border': 1})
 
 headers = ['Cover_code', 'product_group', 'anp']
 for col_num, header in enumerate(headers):
