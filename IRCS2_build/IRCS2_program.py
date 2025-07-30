@@ -433,6 +433,32 @@ wsum.conditional_format('O4:R999', {
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
+w_bsi = wb.add_worksheet("BSI")
+
+w_bsi.set_column(0, 0, 14) 
+w_bsi.set_column(1, 1, 18)   
+w_bsi.set_column(2, 2, 14)   
+
+header_format = wb.add_format({
+    'bold': True,
+    'bg_color': '#8CA5D8',
+    'border': 1,
+    'align': 'center'
+})
+
+cell_format_str = wb.add_format({'border': 1})
+cell_format_num = wb.add_format({'num_format': '0.000000E+00', 'border': 1}) 
+
+headers = ['Cover_code', 'product_group', 'anp']
+for col_num, header in enumerate(headers):
+    w_bsi.write(0, col_num, header, header_format)
+
+for row_num, row_data in trad.bsi_merge.iterrows():
+    w_bsi.write(row_num + 1, 0, row_data['Cover_code'], cell_format_str)
+    w_bsi.write(row_num + 1, 1, row_data['product_group'], cell_format_str)
+    w_bsi.write(row_num + 1, 2, row_data['anp'], cell_format_num)
+
+
 wb.close()
 end_time = time.time()
 elapsed_time(start_time, end_time)

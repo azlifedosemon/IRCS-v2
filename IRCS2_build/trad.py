@@ -321,17 +321,18 @@ summary = summary[cols]
 
 campaign_sum = summary.copy()
 
-bsi = pd.read_excel(input_sheet.BSI_ATTRIBUSI_path, sheet_name = ["Export Worksheet"], engine="openpyxl")
-bsi = bsi["Export Worksheet"]
-bsi = bsi.drop(columns=["POLICY_NO","CP_PH_ID","CP_PH","PRODUCT_CODE","CP_INSURED_ID","LOANNO","CP_INSURED","POLICY_STATUS","UP_ATTR"])
-bsi = bsi.rename(columns = {"COVER_CODE":"product",
+bsi_raw = pd.read_excel("D:\IRCS\Control 2\LGC & LGM Campaign\BSI_ATTRIBUSI_020425.xlsx", sheet_name = ["Export Worksheet"], engine="openpyxl")
+bsi_raw = bsi_raw["Export Worksheet"]
+bsi_raw = bsi_raw.drop(columns=["POLICY_NO","CP_PH_ID","CP_PH","PRODUCT_CODE","CP_INSURED_ID","LOANNO","CP_INSURED","POLICY_STATUS","UP_ATTR"])
+bsi_raw = bsi_raw.rename(columns = {"COVER_CODE":"Cover_code",
                             "PREM_ATTR":"anp"})
-code_bsi = pd.read_excel(input_sheet.CODE_LIBRARY_path,sheet_name = ["Code BSI"],engine="openpyxl")
+bsi_raw = bsi_raw.groupby(["Cover_code"],as_index=False).sum(numeric_only=True)
+code_bsi = pd.read_excel("D:\Python\Code Trad.xlsx",sheet_name = ["Code BSI"],engine="openpyxl")
 code_bsi = code_bsi["Code BSI"]
-convert = dict(zip(code_bsi["Cover_code"], code_bsi["Grouping raw data"]))
-bsi["product_group"] = bsi["product"].map(convert).fillna(bsi["product"])
-bsi = bsi.groupby(["product_group"],as_index=False).sum(numeric_only=True)
-bsi["product_group"] = bsi["product_group"]+"_IDR"
+code_bsi = code_bsi.rename(columns = {'Grouping raw data':'product_group'})
+bsi_merge = pd.merge(code_bsi,bsi_raw,on = 'Cover_code', how = 'left')
+bsi_merge["product_group"] = bsi_merge["product_group"]+"_IDR"
+bsi = bsi_merge.drop(columns = {'Cover_code'})
 
 summary = summary.rename(columns = {"Grouping Raw Data" : "product_group","Bonus SA":"sum_assd"})
 summary = summary.drop(columns = {"Grouping DV","SUM_INSURED","SA After Bonus"})
