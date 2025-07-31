@@ -23,7 +23,7 @@ start_time = time.time()
 wb = xlsxwriter.Workbook(xlsx_output, {'nan_inf_to_errors': True})
 number_format = '_(* #,##0_);_(* (#,##0)_);_(* "-"_);_(@_)'
 
-# AZUL SHEET
+# Summary checking AZUL SHEET
 ws = wb.add_worksheet('Summary_Checking_UL')
 
 ws.freeze_panes(10, 4)
@@ -130,7 +130,7 @@ for c, item in enumerate(sum_diff_total.iloc[0]):
 sum_diff_percent = UL.Different_Percentage_of_Checking_Result_to_Raw_Data
 for c in range(len(header_table_notfreezed1)):
     unicode = chr(77 + c)
-    formula = f'=IFERROR(round({unicode}{4}/{chr(ord(unicode) - 4)}{4} * 100, 1),0)'
+    formula = f'=IFERROR(abs({unicode}{4}/{chr(ord(unicode) - 4)}{4}),0)'
     ws.merge_range(2, 16 + c, 3, 16 + c, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%', 'bg_color': 'yellow', 'bold': True}))
 
 ######################## Lookup table
@@ -148,13 +148,13 @@ for x in range(len(table2)):
 
 ws.conditional_format('Q11:T999', {
     'type':     'cell',
-    'criteria': '<',
-    'value':    0,
+    'criteria': '>',
+    'value':    0.2,
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
 
-# AZTRAD SUMMARY SHEET
+# Summary Checking AZTRAD SUMMARY SHEET
 
 wtrad = wb.add_worksheet('Summary_Checking_TRAD')
 
@@ -312,8 +312,8 @@ for c, item in enumerate(sum_diff_aztrad_output.iloc[0]):
 sum_diff_trad_percent = trad.Different_Percentage
 for c in range(len(header_table_notfreezed1)):
     unicode = chr(77 + c)
-    formula = f'=IFERROR(round({unicode}{6}/{chr(ord(unicode) - 4)}{4} * 100, 1),0)'
-    wtrad.merge_range(2, 16 + c, 3, 16 + c, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%', 'bg_color': 'yellow', 'bold': True}))
+    formula = f'=IFERROR(abs({unicode}{6}/{chr(ord(unicode) - 4)}{4}),0)'
+    wtrad.merge_range(2, 16 + c, 3, 16 + c, formula, wb.add_format({'num_format': '0.0', 'bg_color': 'yellow', 'bold': True}))
 
 
 ################# DIFF ROW
@@ -336,8 +336,8 @@ for x in range(len(table2)):
 
 wtrad.conditional_format('Q11:T999', {
     'type':     'cell',
-    'criteria': '<',
-    'value':    0,
+    'criteria': '>',
+    'value':    0.2,
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
@@ -411,7 +411,7 @@ for x in range(len(currency_summary)):
 for y in range(len(currency_summary)):
     for x in range(len(header_table_notfreezed1)):
         unicode = chr(75 + x)
-        formula = f'=IFERROR(round({unicode}{4 + y}/{chr(ord(unicode) - 4)}{4 + y} * 100, 1),0)'
+        formula = f'=IFERROR(abs({unicode}{4 + y}/{chr(ord(unicode) - 4)}{4 + y}),0)'
         wsum.write_formula(3 + y, 14 + x, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'}))
  
 currency_summary_trad = tst.agg_all
@@ -422,13 +422,13 @@ for x in range(len(currency_summary_trad)):
 for y in range(len(currency_summary_trad)):
     for x in range(len(header_table_notfreezed1)):
         unicode = chr(75 + x)
-        formula = f'=IFERROR(round({unicode}{6 + y}/{chr(ord(unicode) - 4)}{6 + y} * 100, 1),0)'
+        formula = f'=IFERROR(abs({unicode}{6 + y}/{chr(ord(unicode) - 4)}{6 + y}),0)'
         wsum.write_formula(5 + y, 14 + x, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'})) 
  
 wsum.conditional_format('O4:R999', {
     'type':     'cell',
-    'criteria': '<',
-    'value':    0,
+    'criteria': '>',
+    'value':    0.2,
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
