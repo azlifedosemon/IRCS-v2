@@ -30,14 +30,21 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     if len(sys.argv) == 3:
-        run = sys.argv[1]
-        path = sys.argv[2]
-        out_pickle = os.path.join(script_dir, f"rafm_{run}.pkl")
-        main(path, out_pickle)
+        # Tentukan mana yang .xlsx dan mana .pkl dari isi argumen
+        args = sys.argv[1:]
+        excel_path = next((a for a in args if a.lower().endswith(".xlsx")), None)
+        pickle_path = next((a for a in args if a.lower().endswith(".pkl")), None)
+
+        if not excel_path or not pickle_path:
+            print("❌ Argument error: satu .xlsx dan satu .pkl dibutuhkan")
+            sys.exit(1)
+
+        run = os.path.basename(pickle_path).replace("dv_pickle_", "").replace(".pkl", "")
+        main(excel_path, pickle_path)
+
     else:
         print("⚠️ No arguments detected. Trying to auto-select Excel file...")
 
-        # Cari file Excel di folder yang sama atau subfolder ./Source/Trad relatif terhadap script
         search_paths = [
             os.path.join(script_dir, "**", "Data_Extraction_run*TRAD_Con.xlsx")
         ]
@@ -49,10 +56,11 @@ if __name__ == '__main__':
             print("❌ No matching Excel files found.")
             sys.exit(1)
 
-        path = sorted(matching_files)[-1]  # Ambil file terakhir
+        path = sorted(matching_files)[-1]
         filename = os.path.basename(path)
         run = filename.split("Data_Extraction_")[1].split("TRAD_Con")[0].lower()
         out_pickle = os.path.join(script_dir, f"rafm_{run}.pkl")
 
         print(f"📄 Auto-selected file: {filename}")
         main(path, out_pickle)
+

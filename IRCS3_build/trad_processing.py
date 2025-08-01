@@ -183,21 +183,30 @@ WORKER = Path(__file__).resolve().parent / "rafmtrad_worker.py"
 def run_rafm_worker(run, file_path):
     """
     Menjalankan dv_worker.py untuk setiap run dengan input file path dan menghasilkan output pickle.
+    Tidak ada path hardcoded.
     """
+    # Buat folder untuk hasil pickle
+    output_dir = "temp_pickle"
+    os.makedirs(output_dir, exist_ok=True)
+    
     output_pickle = f"dv_pickle_{run}.pkl"
-    output_pickle_path = os.path.join("temp_pickle", output_pickle)
-    os.makedirs("temp_pickle", exist_ok=True)
+    output_pickle_path = os.path.join(output_dir, output_pickle)
+
+    # Path ke dv_worker.py relatif terhadap script ini
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dv_worker_path = os.path.join(script_dir, "dv_worker.py")
 
     try:
         subprocess.check_call([
-            sys.executable,
-            'D:\\Run Control 3\\IRCS3_build\\dv_worker.py',
+            sys.executable,  # Python interpreter saat ini
+            dv_worker_path,
             file_path,
             output_pickle_path
         ])
     except subprocess.CalledProcessError as e:
-        print(f"Gagal menjalankan dv_worker.py untuk run: {run}")
+        print(f"❌ Gagal menjalankan dv_worker.py untuk run: {run}")
         raise e
+
     df = pd.read_pickle(output_pickle_path)
     return run, df
 
