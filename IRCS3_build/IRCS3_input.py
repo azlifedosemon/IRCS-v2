@@ -49,12 +49,23 @@ def filter_processing(filter_df, sheetname):
         elif col in ['path_dv', 'path_rafm', 'path_uvsg']:
             filter_df[col] = filter_df[col].astype(str).str.strip().replace('', pd.NA)
         elif col.strip().upper() == 'USDIDR':
-            filter_df[col] = pd.to_numeric(filter_df[col].astype(str).str.strip().replace('', pd.NA), errors='coerce')
+            filter_df[col] = pd.to_numeric(
+                filter_df[col].astype(str).str.strip().replace('', pd.NA),
+                errors='coerce'
+            )
         else:
             lst = filter_df[col].apply(to_list)
+
             if col in ('only_cohort', 'exclude_cohort'):
                 lst = lst.apply(lambda toks: [normalize_cohort_token(tok) for tok in toks])
+
+            # Fix untuk kosong/nan/nil jadi [] (agar tidak dianggap clash)
+            lst = lst.apply(
+                lambda x: x if isinstance(x, list) and not any(str(i).lower() == 'nan' for i in x) else []
+            )
+
             filter_df[col] = lst
+
 
     filter_df = filter_df.fillna('')
 
