@@ -226,17 +226,19 @@ def build_rafm_subprocess(filters, max_workers = thread_count - 1):
     return rafm
 
 
-def build_uvsg_subprocess(filters, max_workers = thread_count - 1):
+def build_uvsg_subprocess(filters, max_workers=thread_count - 1):
     uvsg = {}
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = {
             ex.submit(run_uvsg_worker, run, params['path_uvsg']): run
             for run, params in filters.items()
+            if 'path_uvsg' in params and params['path_uvsg']
         }
         for fut in as_completed(futures):
             run, df = fut.result()
             uvsg[run] = df
     return uvsg
+
 
 # Table funct
 def filter_goc_by_lob(df, lob):
@@ -313,7 +315,8 @@ for run_name in ulfilter:
     rafm_df = rafm_runs[run_name]
     uvsg_df = uvsg_runs[run_name]
     
-    xdv = pd.concat([rafm_df, uvsg_df])
+    uvsg_df = uvsg_runs.get(run_name, pd.DataFrame(columns=['goc', 'pol_b', 'rv_av_if']))
+    xdv = pd.concat([rafm_df, uvsg_df], ignore_index=True)
     
     merged  = pd.merge(dv_df, xdv, on="goc", how="outer")
     merged.fillna(0, inplace = True)

@@ -168,10 +168,9 @@ valuation_month     = str(get_value('Valuation Month', path_map)) + 'M'
 valuation_year      = get_value('Valuation Year', path_map)
 valuation_rate      = get_value('FX Rate Valdate', path_map)
 product_model       = get_value('Product Model', path_map)
-dv_aztrad_csv       = get_value('DV_AZTRAD', path_map)
 
-excel_output_trad   = get_output_path('Output Trad', 'DV_AZTRAD', path_map)
-excel_output_ul     = get_output_path('Output UL', 'DV_AZUL', path_map)
+excel_output_trad   = get_output_path('Output Trad', 'Output Path Trad', path_map)
+excel_output_ul     = get_output_path('Output UL', 'Output Path UL', path_map)
 
 # Fetch Filter
 ulfilter    = filter_processing(FILTER_UL)
