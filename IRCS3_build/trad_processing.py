@@ -180,6 +180,9 @@ thread_count = os.cpu_count()
 WORKER = Path(__file__).resolve().parent / "rafmtrad_worker.py"
 
 def run_rafm_worker(input_path, output_path, run_id):
+    if not input_path or not output_path:
+        print(f"⚠️  SKIP run {run_id}: input_path or output_path is None")
+        return None
     try:
         subprocess.run([
             sys.executable,
@@ -200,32 +203,26 @@ def run_rafm_worker(input_path, output_path, run_id):
         return None
 
 
-
-def build_rafm_subprocess(tradfilter, output_dir):
-
-    results = []
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    with ThreadPoolExecutor() as executor:
-        futures = []
-        for run_name, params in tradfilter.items():
-            input_path = params.get("RAFM FILE PATH")
-            output_path = output_dir / f"rafm_{run_name}.pkl"
-            futures.append(executor.submit(run_rafm_worker, input_path, output_path, run_name))
+def build_rafm_subprocess(filters, output_dir, max_workers=thread_count - 1):
+    rafm = {}
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = {}
+        for run, params in filters.items():
+            path_rafm = params.get('path_rafm')
+            if not path_rafm:
+                print(f"⚠️  SKIP {run}: path_rafm is None or empty")
+                continue
+            output_path = output_dir / f"rafm_{run}.pkl"
+            futures[ex.submit(run_rafm_worker, path_rafm, output_path, run)] = run
 
         for fut in as_completed(futures):
-            try:
-                result = fut.result()
-                if result is not None:
-                    results.append(result)
-            except Exception as e:
-                print(f"❌ Error in RAFM subprocess for {run_name}: {e}")
-
-    return dict(results)
-
-
-
+            result = fut.result()
+            if result is None:
+                continue
+            run_id, df = result
+            df.rename(columns={'RV_AV_IF': 'rv_av_if'}, inplace=True)
+            rafm[run_id] = df
+    return rafm
 
 # Table funct
 def filter_goc_by_lob(df, lob):
