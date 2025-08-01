@@ -58,6 +58,11 @@ def filter_processing(filter_df, sheetname):
 
     filter_df = filter_df.fillna('')
 
+    # Pastikan semua filter bertipe list
+    for col in filter_df.columns:
+        if col.startswith('only_') or col.startswith('exclude_'):
+            filter_df[col] = filter_df[col].apply(lambda x: x if isinstance(x, list) else [])
+
     # Validasi kolom wajib
     missing_print = []
     if 'path_rafm' in filter_df:
@@ -77,7 +82,7 @@ def filter_processing(filter_df, sheetname):
 
     filters = filter_df.set_index('run_name').to_dict(orient='index')
 
-    # Clash checker (ignore clash if salah satu kosong)
+    # Clash checker (abaikan kalau salah satu kosong)
     run_clashes = {}
     for run_name, params in filters.items():
         for key, only_list in params.items():
@@ -85,8 +90,10 @@ def filter_processing(filter_df, sheetname):
                 continue
             category = key[len('only_'):]
             excl_list = params.get(f'exclude_{category}', [])
-            if not only_list or not excl_list:
-                continue  # kalau salah satu kosong, aman
+            only_list = only_list or []
+            excl_list = excl_list or []
+            if not isinstance(only_list, list): only_list = []
+            if not isinstance(excl_list, list): excl_list = []
             common = set(only_list) & set(excl_list)
             if common:
                 run_clashes.setdefault(run_name, {}).setdefault(category, set()).update(common)
@@ -99,6 +106,7 @@ def filter_processing(filter_df, sheetname):
         sys.exit(1)
 
     return filters
+
 
 
 
