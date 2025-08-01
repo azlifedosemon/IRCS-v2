@@ -58,7 +58,7 @@ def filter_processing(filter_df, sheetname):
 
     filter_df = filter_df.fillna('')
 
-    # Check missing
+    # Validasi kolom wajib
     missing_print = []
     if 'path_rafm' in filter_df:
         missing_path_rafm = filter_df[filter_df['path_rafm'] == '']['run_name'].tolist()
@@ -77,7 +77,7 @@ def filter_processing(filter_df, sheetname):
 
     filters = filter_df.set_index('run_name').to_dict(orient='index')
 
-    # Clash checker
+    # Clash checker (ignore clash if salah satu kosong)
     run_clashes = {}
     for run_name, params in filters.items():
         for key, only_list in params.items():
@@ -85,6 +85,8 @@ def filter_processing(filter_df, sheetname):
                 continue
             category = key[len('only_'):]
             excl_list = params.get(f'exclude_{category}', [])
+            if not only_list or not excl_list:
+                continue  # kalau salah satu kosong, aman
             common = set(only_list) & set(excl_list)
             if common:
                 run_clashes.setdefault(run_name, {}).setdefault(category, set()).update(common)
@@ -97,6 +99,7 @@ def filter_processing(filter_df, sheetname):
         sys.exit(1)
 
     return filters
+
 
 
 def load_inputs(input_sheet_path):
