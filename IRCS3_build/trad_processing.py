@@ -178,40 +178,47 @@ def build_dv_subprocess(paths, max_workers):
 thread_count = os.cpu_count()
 WORKER = Path(__file__).resolve().parent / "rafmtrad_worker.py"
 
-def run_rafm_worker(run, file_path):
-    if not file_path.lower().endswith('.xlsx'):
-        raise ValueError(f"❌ file_path must be an Excel file (.xlsx), got: {file_path}")
-    
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    script_path = os.path.join(script_dir, "rafm_worker.py")
-
-    output_pickle_path = os.path.join(script_dir, f"rafm_{run}.pkl")
-
+def run_rafm_worker(input_path, output_path, run_id):
     try:
-        subprocess.check_call([
+        subprocess.run([
             sys.executable,
-            script_path,
-            file_path,
-            output_pickle_path
-        ])
+            "d:\\Run Control 3\\IRCS3_build\\rafm_worker.py",
+            input_path,
+            output_path
+        ], check=True)
+
+        if not os.path.exists(output_path):
+            print(f"❌ File not found: {output_path}")
+            return None
+
+        df = pd.read_pickle(output_path)
+        return (run_id, df)
+
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error in RAFM worker for run {run}: {e}")
+        print(f"❌ Error in RAFM worker for run {run_id}: {e}")
         return None
-    return run, output_pickle_path
 
 
 
-def build_rafm_subprocess(filters, max_workers = thread_count - 1):
-    rafm = {}
-    with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        futures = {
-            ex.submit(run_rafm_worker, run, params['path_rafm']): run
-            for run, params in filters.items()
-        }
+def build_rafm_subprocess(tradfilter):
+    results = []
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for i, row in tradfilter.iterrows():
+            run = row["RUN ID"]
+            input_path = row["RAFM FILE PATH"]
+            output_path = f"d:\\Run Control 3\\IRCS3_build\\rafm_{run}.pkl"
+
+            futures.append(executor.submit(run_rafm_worker, input_path, output_path, run))
+
         for fut in as_completed(futures):
-            run, df = fut.result()
-            rafm[run] = df
-    return rafm
+            try:
+                result = fut.result()
+                if result is not None:
+                    results.append(result)
+            except Exception as e:
+                print(f"❌ Error in processing RAFM subprocess: {e}")
+    return results
 
 
 
