@@ -131,7 +131,7 @@ sum_diff_percent = UL.Different_Percentage_of_Checking_Result_to_Raw_Data
 for c in range(len(header_table_notfreezed1)):
     unicode = chr(77 + c)
     formula = f'=IFERROR(abs({unicode}{4}/{chr(ord(unicode) - 4)}{4}),0)'
-    ws.merge_range(2, 16 + c, 3, 16 + c, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%', 'bg_color': 'yellow', 'bold': True}))
+    ws.merge_range(2, 16 + c, 3, 16 + c, formula, wb.add_format({'num_format': '0.0', 'bg_color': 'yellow', 'bold': True}))
 
 ######################## Lookup table
 
@@ -144,12 +144,12 @@ for x in range(len(table2)):
     for c, item in enumerate(table2.iloc[x]):
         if type(item) == numpy.float64:
             item = round(item,1)
-        ws.write(10 + x, 16 + c, item, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'}))
+        ws.write(10 + x, 16 + c, item, wb.add_format({'num_format': '%'}))
 
 ws.conditional_format('Q11:T999', {
     'type':     'cell',
     'criteria': '>',
-    'value':    0.2,
+    'value':    0.02,
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
@@ -332,12 +332,12 @@ for x in range(len(table2)):
     for c, item in enumerate(table2.iloc[x]):
         if type(item) == numpy.float64:
             item = round(item,1)
-        wtrad.write(10 + x, 16 + c, item, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'}))
+        wtrad.write(10 + x, 16 + c, item, wb.add_format({'num_format': '%'}))
 
 wtrad.conditional_format('Q11:T999', {
     'type':     'cell',
     'criteria': '>',
-    'value':    0.2,
+    'value':    0.02,
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
@@ -412,7 +412,7 @@ for y in range(len(currency_summary)):
     for x in range(len(header_table_notfreezed1)):
         unicode = chr(75 + x)
         formula = f'=IFERROR(abs({unicode}{4 + y}/{chr(ord(unicode) - 4)}{4 + y}),0)'
-        wsum.write_formula(3 + y, 14 + x, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'}))
+        wsum.write_formula(3 + y, 14 + x, formula, wb.add_format({'num_format': '0.0'}))
  
 currency_summary_trad = tst.agg_all
 for x in range(len(currency_summary_trad)):
@@ -423,12 +423,12 @@ for y in range(len(currency_summary_trad)):
     for x in range(len(header_table_notfreezed1)):
         unicode = chr(75 + x)
         formula = f'=IFERROR(abs({unicode}{6 + y}/{chr(ord(unicode) - 4)}{6 + y}),0)'
-        wsum.write_formula(5 + y, 14 + x, formula, wb.add_format({'num_format': '0.0\\%;-0.0\\%;0\\%;@'})) 
+        wsum.write_formula(5 + y, 14 + x, formula, wb.add_format({'num_format': '0.0'})) 
  
 wsum.conditional_format('O4:R999', {
     'type':     'cell',
     'criteria': '>',
-    'value':    0.2,
+    'value':    0.02,
     'format':   wb.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'}),
 })
 
