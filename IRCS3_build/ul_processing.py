@@ -7,7 +7,13 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import IRCS3_input as input_sheet
+from IRCS3_input import load_inputs
+
+inputs = load_inputs()
+ulfilter = inputs['ulfilter']
+option_channel = inputs['option_channel']
+
+start_time = time.time()
 
 start_time = time.time()
 
@@ -74,7 +80,7 @@ def clean_goc(filter_dict, run_name):
         prod_index  = ''
         
         for i_, x in enumerate(tokens):
-            if x in input_sheet.option_channel:
+            if x in option_channel:
                 start_index = int(i_)
                 if period:
                     break
@@ -257,7 +263,6 @@ def filter_goc_by_lob(df, lob):
 
 ################################ DV PROCESSING ################################
 
-ulfilter = input_sheet.ulfilter
 thread_count = os.cpu_count()
 WORKER = Path(__file__).resolve().parent / "dv_worker.py"
 
