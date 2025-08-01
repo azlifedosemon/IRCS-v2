@@ -200,16 +200,18 @@ def run_rafm_worker(input_path, output_path, run_id):
 
 
 
-def build_rafm_subprocess(tradfilter):
+def build_rafm_subprocess(tradfilter, output_dir):
+
     results = []
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     with ThreadPoolExecutor() as executor:
         futures = []
-        for i, row in tradfilter.iterrows():
-            run = row["RUN ID"]
-            input_path = row["RAFM FILE PATH"]
-            output_path = f"d:\\Run Control 3\\IRCS3_build\\rafm_{run}.pkl"
-
-            futures.append(executor.submit(run_rafm_worker, input_path, output_path, run))
+        for run_name, params in tradfilter.items():
+            input_path = params.get("RAFM FILE PATH")
+            output_path = output_dir / f"rafm_{run_name}.pkl"
+            futures.append(executor.submit(run_rafm_worker, input_path, output_path, run_name))
 
         for fut in as_completed(futures):
             try:
@@ -217,8 +219,10 @@ def build_rafm_subprocess(tradfilter):
                 if result is not None:
                     results.append(result)
             except Exception as e:
-                print(f"❌ Error in processing RAFM subprocess: {e}")
-    return results
+                print(f"❌ Error in RAFM subprocess for {run_name}: {e}")
+
+    return dict(results)
+
 
 
 
