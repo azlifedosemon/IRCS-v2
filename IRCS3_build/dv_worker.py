@@ -1,29 +1,40 @@
-import os
-import sys
 import pandas as pd
+from openpyxl import load_workbook
+import sys
+import os
 
-if len(sys.argv) != 3:
-    print("Usage: python dv_worker.py <path_to_excel> <out_pickle>")
-    sys.exit(1)
+def read_period0_sheet(path, sheet_name):
+    wb = load_workbook(path, read_only=True, data_only=True)
+    ws = wb[sheet_name]
+    rows = ws.iter_rows(values_only=True)
+    hdr = next(rows)
+    idx = {h: i for i, h in enumerate(hdr)}
+    data = []
+    for r in rows:
+        if r[idx['period']] == 0:
+            data.append((r[idx['GOC']], r[idx['pol_b']], r[idx['cov_units']]))
+    df = pd.DataFrame(data, columns=['goc', 'pol_b', 'cov_units'])
+    df['pol_b'] = pd.to_numeric(df['pol_b'].astype(str).str.replace(',', '.'), errors='coerce')
+    df['cov_units'] = pd.to_numeric(df['cov_units'].astype(str).str.replace(',', '.'), errors='coerce')
+    return df
 
-path, out_pickle = sys.argv[1], sys.argv[2]
+def main(path, out_pickle):
+    df_idr = read_period0_sheet(path, 'extraction_IDR')
+    df_usd = read_period0_sheet(path, 'extraction_USD')
+    out = pd.concat([df_idr, df_usd], ignore_index=True)
+    out.to_pickle(out_pickle)
+    print(f"Saved pickle to {out_pickle}")
 
-# print(f"Reading Excel: {path}")
-# print(f"Will write Pickle to: {out_pickle}")
-# print(f"Worker CWD: {os.getcwd()}")  # Show current working directory
-
-# Read, drop redundancy, save as Pickle
-df = pd.read_excel(path, engine='openpyxl')
-df.columns = [str(col).strip() for col in df.columns]
-cols_to_drop = (
-    ['product_group', 'pre_ann', 'loan_sa', 'sum_assur']
-    + [c for c in df.columns if str(c).startswith('Unnamed')]
-)
-df = df.drop(columns=[col for col in cols_to_drop if col in df.columns])
-
-try:
-    df.to_pickle(out_pickle)
-    # print(f"Pickle successfully written: {out_pickle}")
-except Exception as e:
-    print("ERROR while saving pickle:", e)
-    sys.exit(2)
+if __name__ == '__main__':
+    if len(sys.argv) == 3:
+        run = sys.argv[1]
+        path = sys.argv[2]
+        out_pickle = f"rafm_{run}.pkl"
+        main(path, out_pickle)
+    else:
+        # Opsi default untuk debugging atau testing manual (bukan subprocess)
+        run = "run4"
+        path = r"D:\Run Control 3\Source\Trad\Data_Extraction_run4TRAD_Con.xlsx"
+        out_pickle = f"rafm_{run}.pkl"
+        print("⚠️ Running in default mode (no sys.argv detected)")
+        main(path, out_pickle)

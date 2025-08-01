@@ -180,15 +180,27 @@ def build_dv_subprocess(paths, max_workers):
 thread_count = os.cpu_count()
 WORKER = Path(__file__).resolve().parent / "rafmtrad_worker.py"
 
-def run_rafm_worker(run, path):
-    # invoke the *same* Python that's running this script
-    subprocess.check_call([
-        sys.executable,
-        str(WORKER),
-        run,
-        path
-    ])
-    return run, pd.read_pickle(f"rafm_{run}.pkl")
+def run_rafm_worker(run, file_path):
+    """
+    Menjalankan dv_worker.py untuk setiap run dengan input file path dan menghasilkan output pickle.
+    """
+    output_pickle = f"dv_pickle_{run}.pkl"
+    output_pickle_path = os.path.join("temp_pickle", output_pickle)
+    os.makedirs("temp_pickle", exist_ok=True)
+
+    try:
+        subprocess.check_call([
+            sys.executable,
+            'D:\\Run Control 3\\IRCS3_build\\dv_worker.py',
+            file_path,
+            output_pickle_path
+        ])
+    except subprocess.CalledProcessError as e:
+        print(f"Gagal menjalankan dv_worker.py untuk run: {run}")
+        raise e
+    df = pd.read_pickle(output_pickle_path)
+    return run, df
+
 
 
 def build_rafm_subprocess(filters, max_workers = thread_count - 1):
