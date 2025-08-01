@@ -2,6 +2,7 @@ import pandas as pd
 from openpyxl import load_workbook
 import sys
 import os
+from glob import glob
 
 def read_period0_sheet(path, sheet_name):
     wb = load_workbook(path, read_only=True, data_only=True)
@@ -23,18 +24,35 @@ def main(path, out_pickle):
     df_usd = read_period0_sheet(path, 'extraction_USD')
     out = pd.concat([df_idr, df_usd], ignore_index=True)
     out.to_pickle(out_pickle)
-    print(f"Saved pickle to {out_pickle}")
+    print(f"✅ Saved pickle to {out_pickle}")
 
 if __name__ == '__main__':
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
     if len(sys.argv) == 3:
         run = sys.argv[1]
         path = sys.argv[2]
-        out_pickle = f"rafm_{run}.pkl"
+        out_pickle = os.path.join(script_dir, f"rafm_{run}.pkl")
         main(path, out_pickle)
     else:
-        # Opsi default untuk debugging atau testing manual (bukan subprocess)
-        run = "run4"
-        path = r"D:\Run Control 3\Source\Trad\Data_Extraction_run4TRAD_Con.xlsx"
-        out_pickle = f"rafm_{run}.pkl"
-        print("⚠️ Running in default mode (no sys.argv detected)")
+        print("⚠️ No arguments detected. Trying to auto-select Excel file...")
+
+        # Cari file Excel di folder yang sama atau subfolder ./Source/Trad relatif terhadap script
+        search_paths = [
+            os.path.join(script_dir, "**", "Data_Extraction_run*TRAD_Con.xlsx")
+        ]
+        matching_files = []
+        for pattern in search_paths:
+            matching_files.extend(glob(pattern, recursive=True))
+
+        if not matching_files:
+            print("❌ No matching Excel files found.")
+            sys.exit(1)
+
+        path = sorted(matching_files)[-1]  # Ambil file terakhir
+        filename = os.path.basename(path)
+        run = filename.split("Data_Extraction_")[1].split("TRAD_Con")[0].lower()
+        out_pickle = os.path.join(script_dir, f"rafm_{run}.pkl")
+
+        print(f"📄 Auto-selected file: {filename}")
         main(path, out_pickle)
