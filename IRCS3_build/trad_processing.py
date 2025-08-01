@@ -179,21 +179,13 @@ thread_count = os.cpu_count()
 WORKER = Path(__file__).resolve().parent / "rafmtrad_worker.py"
 
 def run_rafm_worker(run, file_path):
-    """
-    Menjalankan script rafm_worker (misalnya dv_worker.py) untuk satu run,
-    menyimpan output pickle sementara, dan mengembalikan DataFrame hasilnya.
-    """
+    if not file_path.lower().endswith('.xlsx'):
+        raise ValueError(f"❌ file_path must be an Excel file (.xlsx), got: {file_path}")
+    
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_path = os.path.join(script_dir, "rafm_worker.py")
 
-    # Pastikan direktori sementara ada
-    temp_dir = os.path.join(os.path.dirname(__file__), 'temp_pickle')
-    os.makedirs(temp_dir, exist_ok=True)
-
-    # Buat nama file pickle otomatis berdasarkan run
-    output_pickle = f"rafm_{run.lower()}.pkl"
-    output_pickle_path = os.path.join(temp_dir, output_pickle)
-
-    # Jalankan subprocess rafm_worker (pastikan path-nya relatif atau dinamis)
-    script_path = os.path.join(os.path.dirname(__file__), 'rafm_worker.py')
+    output_pickle_path = os.path.join(script_dir, f"rafm_{run}.pkl")
 
     try:
         subprocess.check_call([
@@ -203,20 +195,9 @@ def run_rafm_worker(run, file_path):
             output_pickle_path
         ])
     except subprocess.CalledProcessError as e:
-        print(f"❌ Gagal menjalankan rafm_worker.py untuk run: {run}")
-        return run, None
-
-    # Baca hasil dari pickle
-    if os.path.exists(output_pickle_path):
-        try:
-            df = pd.read_pickle(output_pickle_path)
-            return run, df
-        except Exception as e:
-            print(f"❌ Gagal membaca pickle untuk run: {run} ({e})")
-            return run, None
-    else:
-        print(f"❌ Pickle tidak ditemukan untuk run: {run}")
-        return run, None
+        print(f"❌ Error in RAFM worker for run {run}: {e}")
+        return None
+    return run, output_pickle_path
 
 
 

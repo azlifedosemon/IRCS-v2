@@ -9,21 +9,20 @@ def read_period0_sheet(path, sheet_name):
     ws = wb[sheet_name]
     rows = ws.iter_rows(values_only=True)
     hdr = next(rows)
-    idx = {h:i for i,h in enumerate(hdr)}
+    idx = {h: i for i, h in enumerate(hdr)}
     data = []
     for r in rows:
-        if r[idx['period']] == 0:
-            data.append((r[idx['GOC']], r[idx['pol_b']], r[idx['cov_units']]))
-    df = pd.DataFrame(data, columns=['goc','pol_b','cov_units'])
-    df['pol_b']     = pd.to_numeric(df['pol_b'].astype(str).str.replace(',','.'), errors='coerce')
-    df['cov_units'] = pd.to_numeric(df['cov_units'].astype(str).str.replace(',','.'), errors='coerce')
-    
+        if r[idx.get('period')] == 0:
+            data.append((r[idx.get('GOC')], r[idx.get('pol_b')], r[idx.get('cov_units')]))
+    df = pd.DataFrame(data, columns=['goc', 'pol_b', 'cov_units'])
+    df['pol_b'] = pd.to_numeric(df['pol_b'], errors='coerce')
+    df['cov_units'] = pd.to_numeric(df['cov_units'], errors='coerce')
     return df
 
-# parse both sheets and save
+# Baca dari kedua sheet: extraction_IDR dan extraction_USD
 df_idr = read_period0_sheet(path, 'extraction_IDR')
 df_usd = read_period0_sheet(path, 'extraction_USD')
 out = pd.concat([df_idr, df_usd], ignore_index=True)
 
-# dump to a temp file
+# Simpan ke file pickle
 out.to_pickle(f"rafm_{run_name}.pkl")
