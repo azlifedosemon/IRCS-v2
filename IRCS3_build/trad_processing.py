@@ -22,43 +22,41 @@ def elapsed_time(start,end,script):
         print(f"\n• {script} RUNTIME: {round((end - start), 2)} second", end= '')
 
 
-def filtered_df(df, filter_dict):
+def filtered_df(df, filter_dict, run_name):
     goc_upper = df['goc'].astype(str).str.upper()
-    filtered_runs = {}
-    usdidr        = {}
 
-    for run_name, params in filter_dict.items():
-        mask = pd.Series(True, index=df.index)
-        rate = params.get('USDIDR')
-        if rate is not None:
-            usdidr[run_name] = rate
+    params = filter_dict[run_name]
+    mask = pd.Series(True, index=df.index)
+    rate = params.get('USDIDR')
+    if rate is not None:
+        usdidr[run_name] = rate
 
-        # Helper: Split tokens if given as comma-separated string
-        def tokens_list(x):
-            if isinstance(x, list):
-                return x
-            if not x:
-                return []
-            return [t.strip() for t in str(x).split(',') if t.strip()]
+    # Helper: Split tokens if given as comma-separated string
+    def tokens_list(x):
+        if isinstance(x, list):
+            return x
+        if not x:
+            return []
+        return [t.strip() for t in str(x).split(',') if t.strip()]
 
-        # Exclude filters
-        for key in ('exclude_channel', 'exclude_currency', 'exclude_portfolio', 'exclude_cohort', 'exclude_period'):
-            tokens = tokens_list(params.get(key))
-            if tokens:
-                pat = '|'.join(fr'(?:^|_){re.escape(tok.upper())}(?:_|$)' for tok in tokens)
-                mask &= ~goc_upper.str.contains(pat, na=False, regex=True)
+    # Exclude filters
+    for key in ('exclude_channel', 'exclude_currency', 'exclude_portfolio', 'exclude_cohort', 'exclude_period'):
+        tokens = tokens_list(params.get(key))
+        if tokens:
+            pat = '|'.join(fr'(?:^|_){re.escape(tok.upper())}(?:_|$)' for tok in tokens)
+            mask &= ~goc_upper.str.contains(pat, na=False, regex=True)
 
-        # Only filters (if set)
-        for key in ('only_channel', 'only_currency', 'only_portfolio', 'only_cohort', 'only_period'):
-            tokens = tokens_list(params.get(key))
-            if tokens:
-                pat = '|'.join(fr'(?:^|_){re.escape(tok.upper())}(?:_|$)' for tok in tokens)
-                mask &= goc_upper.str.contains(pat, na=False, regex=True)
 
-        filtered_runs[run_name] = df.loc[mask]
+    # Only filters (if set)
+    for key in ('only_channel', 'only_currency', 'only_portfolio', 'only_cohort', 'only_period'):
+        tokens = tokens_list(params.get(key))
+        if tokens:
+            pat = '|'.join(fr'(?:^|_){re.escape(tok.upper())}(?:_|$)' for tok in tokens)
+            mask &= goc_upper.str.contains(pat, na=False, regex=True)
 
-    return filtered_runs, usdidr
+    filtered_runs[run_name] = df.loc[mask]
 
+    return 
 
 def clean_goc(filter_dict, run_name):
     
@@ -146,7 +144,7 @@ def load_dv_excels(tradfilter):
     for run_params in tradfilter.values():
         path = run_params['path_dv']
         if path not in cache:
-            df = pd.read_csv(path, sep= ';')
+            df = pd.read_excel(path, engine = 'openpyxl')
             cols_to_drop = (
                 ['product_group', 'pre_ann', 'loan_sa'] +
                 [c for c in df.columns if str(c).startswith('Unnamed')]
@@ -182,33 +180,43 @@ WORKER = Path(__file__).resolve().parent / "rafmtrad_worker.py"
 
 def run_rafm_worker(run, file_path):
     """
-    Menjalankan dv_worker.py untuk setiap run dengan input file path dan menghasilkan output pickle.
-    Tidak ada path hardcoded.
+    Menjalankan script rafm_worker (misalnya dv_worker.py) untuk satu run,
+    menyimpan output pickle sementara, dan mengembalikan DataFrame hasilnya.
     """
-    # Buat folder untuk hasil pickle
-    output_dir = "temp_pickle"
-    os.makedirs(output_dir, exist_ok=True)
-    
-    output_pickle = f"dv_pickle_{run}.pkl"
-    output_pickle_path = os.path.join(output_dir, output_pickle)
 
-    # Path ke dv_worker.py relatif terhadap script ini
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    dv_worker_path = os.path.join(script_dir, "dv_worker.py")
+    # Pastikan direktori sementara ada
+    temp_dir = os.path.join(os.path.dirname(__file__), 'temp_pickle')
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Buat nama file pickle otomatis berdasarkan run
+    output_pickle = f"rafm_{run.lower()}.pkl"
+    output_pickle_path = os.path.join(temp_dir, output_pickle)
+
+    # Jalankan subprocess rafm_worker (pastikan path-nya relatif atau dinamis)
+    script_path = os.path.join(os.path.dirname(__file__), 'rafm_worker.py')
 
     try:
         subprocess.check_call([
-            sys.executable,  # Python interpreter saat ini
-            dv_worker_path,
+            sys.executable,
+            script_path,
             file_path,
             output_pickle_path
         ])
     except subprocess.CalledProcessError as e:
-        print(f"❌ Gagal menjalankan dv_worker.py untuk run: {run}")
-        raise e
+        print(f"❌ Gagal menjalankan rafm_worker.py untuk run: {run}")
+        return run, None
 
-    df = pd.read_pickle(output_pickle_path)
-    return run, df
+    # Baca hasil dari pickle
+    if os.path.exists(output_pickle_path):
+        try:
+            df = pd.read_pickle(output_pickle_path)
+            return run, df
+        except Exception as e:
+            print(f"❌ Gagal membaca pickle untuk run: {run} ({e})")
+            return run, None
+    else:
+        print(f"❌ Pickle tidak ditemukan untuk run: {run}")
+        return run, None
 
 
 
