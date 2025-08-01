@@ -150,7 +150,7 @@ def load_dv_excels(ulfilter):
             # Read Excel as CSV (assuming first sheet, or name if you know it)
             df = pd.read_excel(path, engine='openpyxl')
             # Mirror your CSV read: drop unnecessary columns
-            cols_to_drop = (['product_group', 'pre_ann', 'loan_sa']
+            cols_to_drop = (['product_group', 'pre_ann', 'sum_assur']
                             + [c for c in df.columns if str(c).startswith('Unnamed')])
             cache[path] = df.drop(columns=[col for col in cols_to_drop if col in df.columns])
             

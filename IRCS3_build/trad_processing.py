@@ -136,10 +136,6 @@ def build_cleaned_runs(filtered_df, usdidr, filter):
 
     return cleaned_runs
 
-def run_dv_worker(path):
-    out_pkl = str(Path.cwd() / f"dv_{Path(path).stem}.pkl")
-    subprocess.check_call([sys.executable, str(WORKER), path, out_pkl])
-    return path, pd.read_pickle(out_pkl)
 
 def load_dv_excels(tradfilter):
     """
@@ -150,11 +146,25 @@ def load_dv_excels(tradfilter):
     for run_params in tradfilter.values():
         path = run_params['path_dv']
         if path not in cache:
-            df = pd.read_excel(path, engine='openpyxl')
-            cols_to_drop = (['product_group', 'pre_ann', 'loan_sa']
-                            + [c for c in df.columns if str(c).startswith('Unnamed')])
-            cache[path] = df.drop(columns=[col for col in cols_to_drop if col in df.columns])
+            df = pd.read_csv(path, sep= ';')
+            cols_to_drop = (
+                ['product_group', 'pre_ann', 'loan_sa'] +
+                [c for c in df.columns if str(c).startswith('Unnamed')]
+            )
+            df = df.drop(columns=[col for col in cols_to_drop if col in df.columns])
+            cache[path] = df
     return cache
+
+def run_dv_worker(path):
+    out_pkl = str(Path.cwd() / f"dv_{Path(path).stem}.pkl")
+    df = pd.read_csv(path)
+    cols_to_drop = (
+        ['product_group', 'pre_ann', 'loan_sa'] +
+        [c for c in df.columns if str(c).startswith('Unnamed')]
+    )
+    df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
+    df.to_pickle(out_pkl)
+    return path, df
 
 def build_dv_subprocess(paths, max_workers):
     dv = {}
@@ -164,6 +174,7 @@ def build_dv_subprocess(paths, max_workers):
             path, df = fut.result()
             dv[path] = df
     return dv
+
 
 # RAFM funct
 thread_count = os.cpu_count()
@@ -218,41 +229,24 @@ tradfilter = input_sheet.tradfilter
 thread_count = os.cpu_count()
 WORKER = Path(__file__).resolve().parent / "dv_worker.py"
 
-# Ambil semua path_dv dari tradfilter
 all_dv_paths = [params['path_dv'] for params in tradfilter.values()]
 
-# Jika semua path sama → load satu kali
 if len(set(all_dv_paths)) == 1:
-    dv_cache = load_dv_excels(tradfilter)  # satu kali baca file CSV
-
-    # Semua run pakai file yang sama
-    dv_runs = {run: dv_cache[params['path_dv']] for run, params in tradfilter.items()}
-
+    dv_cache = load_dv_excels(tradfilter)
 else:
-    # Beragam file → jalankan subprocess parallel
-    dv_cache = build_dv_subprocess(all_dv_paths, max(1, thread_count - 1))
-    
-    # Map kembali ke masing-masing run
-    dv_runs = {run: dv_cache[params['path_dv']] for run, params in tradfilter.items()}
+    dv_cache = build_dv_subprocess(all_dv_paths, thread_count - 1)
 
-# Filter dan drop kolom DV
+dv_runs = {run: dv_cache[params['path_dv']] for run, params in tradfilter.items()}
+
 filtered_runs = {}
 usdidr = {}
 
-for run_name in dv_runs:
-    df = dv_runs[run_name]
-    
-    # Drop kolom tidak dipakai
-    drop_cols = ['product_group', 'pre_ann', 'loan_sa']
-    df = df.drop(columns=[col for col in drop_cols if col in df.columns], errors='ignore')
-    df = df.drop(columns=[c for c in df.columns if c.startswith("Unnamed")], errors='ignore')
-    
-    # Filter dan simpan hasil
-    filtered, rate_dict = filtered_df(df, tradfilter, run_name)
-    filtered_runs.update(filtered)
-    usdidr.update(rate_dict)
+for run_name, df in dv_runs.items():
+    if 'sum_assur' in df.columns:
+        df = df.drop(columns='sum_assur')
 
-# Build final cleaned dataframe
+    filtered_df(df, tradfilter, run_name)
+
 cleaned_df = build_cleaned_runs(filtered_runs, usdidr, tradfilter)
 
 
