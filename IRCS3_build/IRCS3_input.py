@@ -1,93 +1,143 @@
 import pandas as pd
+import re
+import sys
 from pathlib import Path
 
 # === SET INPUT SHEET PATH SECARA OTOMATIS (tidak hardcoded)
 INPUT_SHEET_PATH = Path(__file__).parent / "Input Sheet_IRCS3.xlsx"
 
-def to_list(val):
-    if pd.isna(val):
+
+
+def to_list(cell):
+    splitter = re.compile(r'[,\;/\\\|\s]+')
+    s = str(cell).strip()
+    if not s:
         return []
-    return [str(v).strip() for v in str(val).split(',') if str(v).strip()]
+    parts = splitter.split(s)
+    return list(dict.fromkeys(tok.strip() for tok in parts if tok.strip()))
 
-def filter_processing(df, name):
-    df.columns = df.columns.str.strip()
-    df = df.dropna(how='all')
 
-    if df.empty:
-        print(f"Warning: Sheet {name} is empty.")
-        return []
+def normalize_cohort_token(tok):
+    s = str(tok).strip()
+    m = re.fullmatch(r'(\d+)(?:\.0+)?', s)
+    return m.group(1) if m else s
 
-    filters = []
-    for _, row in df.iterrows():
-        row = row.fillna('')
-        only_channel     = to_list(row.get('only_channel'))
-        exclude_channel  = to_list(row.get('exclude_channel'))
-        only_portfolio   = to_list(row.get('only_portfolio'))
-        exclude_portfolio= to_list(row.get('exclude_portfolio'))
-        only_cohort      = to_list(row.get('only_cohort'))
-        exclude_cohort   = to_list(row.get('exclude_cohort'))
-        only_currency    = to_list(row.get('only_currency'))
-        exclude_currency = to_list(row.get('exclude_currency'))
-        goc              = to_list(row.get('goc'))
-        usd_rate         = pd.to_numeric(str(row.get('USDIDR', '')).strip(), errors='coerce')
 
-        if only_channel and exclude_channel:
-            raise ValueError("Cannot have both 'only_channel' and 'exclude_channel'")
-        if only_portfolio and exclude_portfolio:
-            raise ValueError("Cannot have both 'only_portfolio' and 'exclude_portfolio'")
+def get_value(key, mydict):
+    return mydict.get(key)
 
-        filters.append({
-            "only_channel": only_channel,
-            "exclude_channel": exclude_channel,
-            "only_portfolio": only_portfolio,
-            "exclude_portfolio": exclude_portfolio,
-            "only_cohort": only_cohort,
-            "exclude_cohort": exclude_cohort,
-            "only_currency": only_currency,
-            "exclude_currency": exclude_currency,
-            "goc": goc,
-            "usd_rate": usd_rate,
-            "name": name
-        })
+
+def get_local_folder(filepath):
+    return str(Path(filepath).parent)
+
+
+def get_output_path(filekey, refkey, path_map):
+    filename = path_map.get(filekey)
+    ref_path = path_map.get(refkey)
+    if filename and ref_path:
+        return str(Path(get_local_folder(ref_path)) / f"{filename}.xlsx")
+    return None
+
+
+def filter_processing(filter_df, sheetname):
+    filter_df.columns = filter_df.columns.map(str)
+    filter_df.columns = filter_df.columns.str.strip()
+
+    for col in filter_df.columns:
+        if col == 'run_name':
+            continue
+        elif col in ['path_dv', 'path_rafm', 'path_uvsg']:
+            filter_df[col] = filter_df[col].astype(str).str.strip().replace('', pd.NA)
+        elif col.strip().upper() == 'USDIDR':
+            filter_df[col] = pd.to_numeric(filter_df[col].astype(str).str.strip().replace('', pd.NA), errors='coerce')
+        else:
+            lst = filter_df[col].apply(to_list)
+            if col in ('only_cohort', 'exclude_cohort'):
+                lst = lst.apply(lambda toks: [normalize_cohort_token(tok) for tok in toks])
+            filter_df[col] = lst
+
+    filter_df = filter_df.fillna('')
+
+    # Check missing
+    missing_print = []
+    if 'path_rafm' in filter_df:
+        missing_path_rafm = filter_df[filter_df['path_rafm'] == '']['run_name'].tolist()
+        if missing_path_rafm:
+            missing_print.append(f"ERROR PATH: Fill 'path_rafm' for {', '.join(missing_path_rafm)} in {sheetname}")
+
+    if 'USDIDR' in filter_df:
+        missing_rate = filter_df[filter_df['USDIDR'] == '']['run_name'].tolist()
+        if missing_rate:
+            missing_print.append(f"ERROR RATE: Fill 'USDIDR' for {', '.join(missing_rate)} in {sheetname}")
+
+    if missing_print:
+        for msg in missing_print:
+            print(msg)
+        sys.exit(1)
+
+    filters = filter_df.set_index('run_name').to_dict(orient='index')
+
+    # Clash checker
+    run_clashes = {}
+    for run_name, params in filters.items():
+        for key, only_list in params.items():
+            if not key.startswith('only_'):
+                continue
+            category = key[len('only_'):]
+            excl_list = params.get(f'exclude_{category}', [])
+            common = set(only_list) & set(excl_list)
+            if common:
+                run_clashes.setdefault(run_name, {}).setdefault(category, set()).update(common)
+
+    if run_clashes:
+        print(f"ERROR CLASH in {sheetname}:")
+        for run_name, cat_map in run_clashes.items():
+            details = "; ".join(f"{cat} → {', '.join(sorted(vals))}" for cat, vals in cat_map.items())
+            print(f"• {run_name}: {details}")
+        sys.exit(1)
 
     return filters
 
-# === BACA SEMUA SHEET
-excel = pd.read_excel(INPUT_SHEET_PATH, sheet_name=None)
 
-FILTER_TRAD = excel.get('FILTER_TRAD', pd.DataFrame())
-FILTER_UL   = excel.get('FILTER_UL', pd.DataFrame())
-PATH_MAP    = excel.get('File Path', pd.DataFrame())
+def load_inputs(input_sheet_path):
+    input_sheet = pd.ExcelFile(input_sheet_path, engine='openpyxl')
+    path_df = pd.read_excel(input_sheet, 'INPUT_SETTING')
+    variable_df = pd.read_excel(input_sheet, 'VARIABLE_DEF')
 
-# === STRIP SEMUA KOLOM DI AWAL
-for k in excel:
-    if isinstance(excel[k], pd.DataFrame):
-        excel[k].columns = excel[k].columns.str.strip()
+    path_map = dict(zip(path_df['Category'], path_df['Path']))
+    var_map = dict(zip(variable_df['Variable Name'], variable_df['Options']))
 
-# === BUAT FILTER
-tradfilter = filter_processing(FILTER_TRAD, 'FILTER_TRAD')
-ulfilter   = filter_processing(FILTER_UL, 'FILTER_UL')
+    filter_trad_raw = pd.read_excel(input_sheet, 'FILTER_TRAD')
+    filter_ul_raw = pd.read_excel(input_sheet, 'FILTER_UL')
 
-# === GET FILE PATH DYNAMIC
-def get_output_path(key, ref_key, path_map_df):
-    path_map_df.columns = path_map_df.columns.str.strip()
-    mydict = dict(zip(path_map_df['KEY'], path_map_df['PATH']))
-    if key in mydict:
-        base_path = Path(mydict.get(ref_key, '')).resolve().parent
-        return str(base_path / mydict[key])
-    return None
+    tradfilter = filter_processing(filter_trad_raw, 'FILTER_TRAD')
+    ulfilter = filter_processing(filter_ul_raw, 'FILTER_UL')
 
-excel_output_trad = get_output_path('Output Trad', 'DV_AZTRAD', PATH_MAP)
-excel_output_ul   = get_output_path('Output UL', 'DV_UL', PATH_MAP)
+    valuation_month = str(get_value('Valuation Month', path_map)) + 'M'
+    valuation_year = get_value('Valuation Year', path_map)
+    valuation_rate = get_value('FX Rate Valdate', path_map)
+    product_model = get_value('Product Model', path_map)
 
-# === GET FILE PATHS
-dv_aztrad_csv = PATH_MAP[PATH_MAP['KEY'] == 'DV_AZTRAD']['PATH'].values[0]
-rafmtrad_path = PATH_MAP[PATH_MAP['KEY'] == 'RAFM_TRAD']['PATH'].values[0]
-dv_ul_csv     = PATH_MAP[PATH_MAP['KEY'] == 'DV_UL']['PATH'].values[0]
-rafm_ul_path  = PATH_MAP[PATH_MAP['KEY'] == 'RAFM_UL']['PATH'].values[0]
-uvsg_ul_path  = PATH_MAP[PATH_MAP['KEY'] == 'UVSG_UL']['PATH'].values[0]
+    excel_output_trad = get_output_path('Output Trad', 'Output Path Trad', path_map)
+    excel_output_ul = get_output_path('Output UL', 'Output Path UL', path_map)
 
-# === DEBUG OPTIONAL
-# print(tradfilter)
-# print(ulfilter)
-# print(excel_output_trad, excel_output_ul)
+    # Variabel
+    option_channel = get_value('channel', var_map).split(',')
+    option_currency = get_value('currency', var_map).split(',')
+    option_portfolio = get_value('portfolio', var_map).split(',')
+    option_period = get_value('period', var_map).split(',')
+
+    return {
+        'tradfilter': tradfilter,
+        'ulfilter': ulfilter,
+        'valuation_month': valuation_month,
+        'valuation_year': valuation_year,
+        'valuation_rate': valuation_rate,
+        'product_model': product_model,
+        'excel_output_trad': excel_output_trad,
+        'excel_output_ul': excel_output_ul,
+        'option_channel': option_channel,
+        'option_currency': option_currency,
+        'option_portfolio': option_portfolio,
+        'option_period': option_period
+    }
