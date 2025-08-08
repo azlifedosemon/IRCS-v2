@@ -271,7 +271,17 @@ def main(params):
     cols = ['File_Name'] + [col for col in cf_argo.columns if col != 'File_Name']
     cf_argo = cf_argo[cols]
     cf_argo = cf_argo.rename(columns={'File_Name': 'ARGO File Name'})
-
+    cf_argo = pd.merge(code,cf_argo, on = 'ARGO File Name', how = 'left')
+    
+    # Fixed: Safely drop columns that exist
+    columns_to_drop = []
+    if 'RAFM File Name' in cf_argo.columns:
+        columns_to_drop.append('RAFM File Name')
+    if 'UVSG File Name' in cf_argo.columns:
+        columns_to_drop.append('UVSG File Name')
+    if columns_to_drop:
+        cf_argo = cf_argo.drop(columns=columns_to_drop)
+    
     file_paths_rafm = [f for f in glob.glob(os.path.join(folder_path_rafm, '*.xlsx')) if not os.path.basename(f).startswith('~$')]
     file_entries = [
     (f, os.path.splitext(os.path.basename(f))[0], global_filter_rafm)
@@ -334,7 +344,10 @@ def main(params):
     cols = ['File_Name'] + [col for col in cf_rafm_1.columns if col != 'File_Name']
     cf_rafm_1 = cf_rafm_1[cols]
 
-    code_rafm = code.drop(columns={'UVSG File Name'})
+    code_rafm = code.copy()
+    if 'UVSG File Name' in code_rafm.columns:
+        code_rafm = code_rafm.drop(columns=['UVSG File Name'])
+    
     cf_rafm = cf_rafm_1.rename(columns={'File_Name': 'RAFM File Name'})
     cf_rafm_merge = pd.merge(code_rafm, cf_rafm, on="RAFM File Name", how="left")
     cf_rafm_merge.fillna(0, inplace=True)
@@ -356,16 +369,23 @@ def main(params):
             for col in numeric_cols:
                 cf_rafm_merge.at[idx, col] = total_values[col]
 
-    cf_rafm = cf_rafm_merge.drop(columns=['ARGO File Name'])
-    cf_rafm = cf_rafm.drop(columns={'period'})
+    columns_to_drop = []
+    if 'ARGO File Name' in cf_rafm_merge.columns:
+        columns_to_drop.append('ARGO File Name')
+    if 'period' in cf_rafm_merge.columns:
+        columns_to_drop.append('period')
+    if columns_to_drop:
+        cf_rafm = cf_rafm_merge.drop(columns=columns_to_drop)
+    else:
+        cf_rafm = cf_rafm_merge.copy()
+    
     cf_rafm['dac_cov_units'] = cf_rafm['cov_units']
     cf_rafm['dac'] = -cf_rafm['r_acq_cost']
     nattr_exp = ['nattr_exp_acq', 'nattr_exp_inv', 'nattr_exp_maint']
     for col in nattr_exp:
         cf_rafm[col] = cf_rafm[col].astype(str).str.replace(',', '').astype(float)
     cf_rafm['nattr_exp'] = cf_rafm['nattr_exp_acq'] + cf_rafm['nattr_exp_inv'] + cf_rafm['nattr_exp_maint']
-
-    file_paths_uvsg = [f for f in glob.glob(os.path.join(folder_path_uvsg, '*.xlsx')) if not os.path.basename(f).startswith('~$')]
+    file_paths_uvsg = [f for f in glob.glob(os.path.join(folder_path_uvsg, '*.xlsx')) if not os.path.basename(f).startswith('~')]
 
     summary_rows_uvsg = []
     additional_summary_rows = []
@@ -409,7 +429,9 @@ def main(params):
         uvsg_1 = pd.DataFrame(columns=['File_Name'] + columns_to_sum_uvsg + additional_columns_uvsg)
 
     uvsg_1 = uvsg_1.rename(columns={'u_sar': 'c_sar'})
-    uvsg_1 = uvsg_1.drop(columns={'period'}, errors='ignore')
+    if 'period' in uvsg_1.columns:
+        uvsg_1 = uvsg_1.drop(columns=['period'])
+    
     uvsg_1['dac_cov_units'] = uvsg_1['cov_units']
     uvsg_1['dac'] = -uvsg_1['r_acq_cost']
     for col in nattr_exp:
@@ -417,78 +439,39 @@ def main(params):
     uvsg_1['nattr_exp'] = uvsg_1['nattr_exp_acq'] + uvsg_1['nattr_exp_inv'] + uvsg_1['nattr_exp_maint']
 
     uvsg_2 = uvsg_1.copy()
-    code_uvsg = code.drop(columns={'ARGO File Name'})
+    code_uvsg = code.copy()
+    if 'ARGO File Name' in code_uvsg.columns:
+        code_uvsg = code_uvsg.drop(columns=['ARGO File Name'])
+    
     uvsg = uvsg_2.rename(columns={'File_Name': 'UVSG File Name'})
     uvsg_merged = pd.merge(code_uvsg, uvsg, on="UVSG File Name", how="left")
     uvsg_merged.fillna(0, inplace=True)
-    uvsg = uvsg_merged.drop(columns=['RAFM File Name'])
-
+    if 'RAFM File Name' in uvsg_merged.columns:
+        uvsg = uvsg_merged.drop(columns=['RAFM File Name'])
+    else:
+        uvsg = uvsg_merged.copy()
+    
     #################################### RAFM MANUAL #####################################
     rafm_manual = pd.read_excel(rafm_manual_path, sheet_name = 'Sheet1',engine = 'openpyxl')
     rafm_manual = rafm_manual.drop (columns = ['No','Update (Y/N)','Shift Dur','Cohort','C_sar'])
     rafm_manual = rafm_manual.fillna(0)
     rafm_manual # JADI SHEET RAFM MANUAL
     ############################ HITUNG SUMMARYNYA ###############################
-    cf_rafm_2 = cf_rafm.copy()
-    cf_rafm_2 = cf_rafm_2.groupby('RAFM File Name', as_index=False).first()
 
-    if not uvsg_1.empty:
-        uvsg_3 = uvsg_1.copy()
-        convert = dict(zip(code_uvsg["UVSG File Name"], code_uvsg["RAFM File Name"]))
-        uvsg_3["RAFM File Name"] = uvsg_3["File_Name"].map(convert).fillna(uvsg_3["File_Name"])
-        uvsg_3['pv_r_exp_m'] = -uvsg_3['pv_r_exp_m']
-        uvsg_3 = uvsg_3.drop(columns=['File_Name'])
-    else:
-        uvsg_3 = pd.DataFrame(columns=['RAFM File Name'] + [col for col in uvsg_1.columns if col != 'File_Name'])
-
-    rafm_manual_1 = rafm_manual.copy()
-    rafm_manual_1 = rafm_manual_1.groupby('RAFM File Name', as_index=False).first()
-    rafm_manual_1['c_sar'] = -rafm_manual_1['c_sar']
-    rafm_manual_1['pv_r_exp_m'] = -rafm_manual_1['pv_r_exp_m']
-    rafm_manual_1
-
-    manual_cols = [col for col in rafm_manual_1.columns if col in cols_to_compare and col != 'RAFM File Name']
-
-    rafm = pd.merge(cf_rafm_2,uvsg_3, on='RAFM File Name',how = "left", suffixes=('_cf', '_uvsg'))
-    rafm = pd.merge(rafm,rafm_manual_1, on='RAFM File Name',how = "left")
-    rafm = rafm.rename(columns={col: f"{col}_manual" for col in manual_cols})
-    rafm = rafm.fillna(0)
+    final = code.copy()
     for col in cols_to_compare:
-        col_cf = f"{col}_cf"          
-        col_uvsg = f"{col}_uvsg"     
-        col_manual = f"{col}_manual" 
-
-        if col_cf in rafm.columns and col_uvsg in rafm.columns and col_manual in rafm.columns:
-            rafm[f'{col}'] = rafm[col_cf] + rafm[col_uvsg] - rafm[col_manual] 
-    cols_final = ['RAFM File Name']+ [f'{col}' for col in cols_to_compare]
-
-    rafm = rafm[cols_final]
-    rafm = rafm.fillna(0)
-
-    code_rafm = code.drop(columns = {'UVSG File Name'})
-    rafm_merged = pd.merge(code_rafm, rafm, on="RAFM File Name", how="left")
-    rafm_merged.fillna(0, inplace=True)
-
-    final = pd.merge(rafm_merged,cf_argo, on='ARGO File Name',how = "left", suffixes=('_merged', '_argo'))
-    for col in cols_to_compare:
-        col_argo = f"{col}_argo"          
-        col_merged = f"{col}_merged"
-
-        if col_argo in final.columns and col_merged in final.columns:
-            final[f'{col}_diff'] = final[col_merged] - final[col_argo]
-        else:
-            print(f"Skipped {col} because columns not found: {col_argo}, {col_merged}")
-    cols_final = ['RAFM File Name','ARGO File Name'] + [f'{col}_diff' for col in cols_to_compare]
-    final = final[cols_final]
-    final = final.fillna(0)
-    cf_rafm = cf_rafm.groupby('RAFM File Name',as_index = False).first()
-    uvsg = uvsg.groupby('UVSG File Name',as_index = False).first()
-    global_filter_uvsg = global_filter_uvsg.rename(columns = {'File Name':'UVSG File Name'})
-    global_filter_rafm = global_filter_rafm.rename(columns = {'File Name':'RAFM File Name'})
-    mapping = pd.merge(code,global_filter_rafm,on = 'RAFM File Name', how = 'left')
-    cf_rafm = pd.merge(cf_rafm,global_filter_rafm,on = 'RAFM File Name',how = 'right')
-    uvsg = pd.merge(uvsg,global_filter_uvsg,on = 'UVSG File Name',how = 'right')
+        if col not in code.columns:
+            final[col] = pd.NA
     logic_row = sign_logic.iloc[0]
+
+    mapping_code = global_filter_rafm.drop(columns = {'File Name'})
+    mapping = pd.concat([code_rafm,mapping_code], axis = 1)
+    global_filter_rafm = global_filter_rafm.groupby('File Name', as_index = False).first()
+    global_filter_rafm = global_filter_rafm.rename(columns = {'File Name':'RAFM File Name'})
+    cf_rafm = pd.merge(cf_rafm,global_filter_rafm,on = 'RAFM File Name', how = 'left')
+    global_filter_uvsg = global_filter_uvsg.groupby('File Name', as_index = False).first()
+    global_filter_uvsg = global_filter_uvsg.rename(columns = {'File Name':'UVSG File Name'})
+    uvsg = pd.merge(uvsg,global_filter_uvsg,on = 'UVSG File Name', how = 'left')
 
     valid_cols = [col for col in logic_row.index if col in cf_argo.columns]
     def check_sign(val, logic_sign):

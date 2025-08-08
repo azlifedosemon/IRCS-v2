@@ -156,7 +156,16 @@ def main(params):
 
     cf_argo = pd.DataFrame(summary_rows_argo)
     cf_argo = cf_argo.rename(columns={'File_Name': 'ARGO File Name'})
-    cf_argo[['clm_base', 'clm_pro', 'clm_hth']] = cf_argo[['clm_base', 'clm_pro', 'clm_hth']] / 3
+    cf_argo = pd.merge(code,cf_argo, on = 'ARGO File Name', how = 'left')
+    
+    columns_to_drop = []
+    if 'RAFM File Name' in cf_argo.columns:
+        columns_to_drop.append('RAFM File Name')
+    if 'UVSG File Name' in cf_argo.columns:
+        columns_to_drop.append('UVSG File Name')
+    if columns_to_drop:
+        cf_argo = cf_argo.drop(columns=columns_to_drop)
+    
     if 'ARGO File Name' in cf_argo.columns:
         cols = ['ARGO File Name'] + [col for col in cf_argo.columns if col != 'ARGO File Name']
         cf_argo = cf_argo[cols]
@@ -235,7 +244,18 @@ def main(params):
         for col in numeric_cols:
             cf_rafm_merge.at[idx, col] = totals[col]
 
-    cf_rafm = cf_rafm_merge.drop(columns=['ARGO File Name', 'period'], errors='ignore')
+    columns_to_drop = []
+    if 'ARGO File Name' in cf_rafm_merge.columns:
+        columns_to_drop.append('ARGO File Name')
+    if 'period' in cf_rafm_merge.columns:
+        columns_to_drop.append('period')
+    if 'UVSG File Name' in cf_rafm_merge.columns:
+        columns_to_drop.append('UVSG File Name')
+    if columns_to_drop:
+        cf_rafm = cf_rafm_merge.drop(columns=columns_to_drop)
+    else:
+        cf_rafm = cf_rafm_merge.copy()
+    
     cf_rafm['dac'] = -cf_rafm['r_acq_cost']
     cf_rafm['nattr_exp'] = cf_rafm[['nattr_exp_acq', 'nattr_exp_inv', 'nattr_exp_maint']].sum(axis=1)
     cf_rafm['pv_clm_surr_pw_n'] = cf_rafm[['pv_surr', 'pv_pw_n']].sum(axis=1)
@@ -244,36 +264,17 @@ def main(params):
 
     rafm_manual = pd.read_excel(rafm_manual_path, sheet_name='Sheet1').drop(columns=['No','Update (Y/N)','Shift Dur','Cohort'])
     rafm_manual = rafm_manual.rename(columns={'c_sar': 'u_sar'}).fillna(0)
+    final = code.copy()
+    for col in columns_to_sum_argo:
+        if col not in code.columns:
+            final[col] = pd.NA
+    logic_row = sign_logic.iloc[0]
 
-    cf_rafm_2 = cf_rafm.groupby('RAFM File Name', as_index=False).first()
-    cf_rafm_2['pv_r_exp_m'] = -cf_rafm_2['pv_r_exp_m']
-    rafm_manual_1 = rafm_manual.groupby('RAFM File Name', as_index=False).first()
-
-    rafm = pd.merge(cf_rafm_2, rafm_manual_1, on='RAFM File Name', how="left", suffixes=('_cf', '_manual')).fillna(0)
-
-    cols_to_compare = columns_to_sum_argo
-    for col in cols_to_compare:
-        cf = f"{col}_cf"
-        manual = f"{col}_manual"
-        if cf in rafm and manual in rafm:
-            rafm[col] = rafm[cf] + rafm[manual]
-
-    rafm_merged = pd.merge(code, rafm[['RAFM File Name'] + cols_to_compare], on='RAFM File Name', how='left').fillna(0)
-    final = pd.merge(rafm_merged, cf_argo, on='ARGO File Name', how='left', suffixes=('_merged', '_argo')).fillna(0)
-
-    for col in cols_to_compare:
-        col_argo = f"{col}_argo"
-        col_merged = f"{col}_merged"
-        if col_argo in final.columns and col_merged in final.columns:
-            final[f'{col}_diff'] = final[col_argo] - final[col_merged]
-    cols_final = ['RAFM File Name','ARGO File Name'] + [f'{col}_diff' for col in cols_to_compare]
-    final = final[cols_final]
-    final = final.fillna(0)
-    final ['lrc_cl_inv_surr_diff'] = final['lrc_cl_inv_surr_diff']-cf_rafm['tab_ph']
-    cf_rafm = cf_rafm.groupby('RAFM File Name',as_index = False).first()
+    mapping_code = global_filter_rafm.drop(columns = {'File Name'})
+    mapping = pd.concat([code,mapping_code], axis = 1)
+    global_filter_rafm = global_filter_rafm.groupby('File Name', as_index = False).first()
     global_filter_rafm = global_filter_rafm.rename(columns = {'File Name':'RAFM File Name'})
-    mapping = pd.merge(code,global_filter_rafm,on = 'RAFM File Name', how = 'left')
-    cf_rafm = pd.merge(cf_rafm,global_filter_rafm,on = 'RAFM File Name',how = 'right')
+    cf_rafm = pd.merge(cf_rafm,global_filter_rafm,on = 'RAFM File Name', how = 'left')
     logic_row = sign_logic.iloc[0]
 
     valid_cols = [col for col in logic_row.index if col in cf_argo.columns]

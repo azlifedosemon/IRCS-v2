@@ -247,21 +247,26 @@ def write_trad_results_to_excel(trad_results, input_config: InputSheetConfig):
         
         ws.write(row, 0, run_name, yellow)
         
+        # === DV (kolom 1) ===
         ws.write_formula(row, 1, f'=SUM(C{row+1}:F{row+1})',border_number)
 
+        # === RAFM (kolom 6) ===
         ws.write_formula(row, 6, f'=SUM(H{row+1}:K{row+1})', border_number)
 
+        # === Differences (kolom 11–15) ===
         ws.write_formula(row, 11, f'=B{row+1}-G{row+1}', border_number)
         ws.write_formula(row, 12, f'=C{row+1}-H{row+1}', border_number)
         ws.write_formula(row, 13, f'=D{row+1}-I{row+1}', border_number)
         ws.write_formula(row, 14, f'=E{row+1}-J{row+1}', border_number)
         ws.write_formula(row, 15, f'=F{row+1}-K{row+1}', border_number)
 
+        # === DV Detail (kolom 2–5) ===
         ws.write_formula(row, 2, f"='{run_name}'!C5", border_number)
         ws.write_formula(row, 3, f"='{run_name}'!S4", border_number)
         ws.write_formula(row, 4, f"='{run_name}'!AA4", border_number)
         ws.write_formula(row, 5, f"='{run_name}'!AI4", border_number)
 
+        # === RAFM Detail (kolom 7–10) ===
         ws.write_formula(row, 7, f"='{run_name}'!E5 + '{run_name}'!M4", border_number)
         ws.write_formula(row, 8, f"='{run_name}'!U4", border_number)
         ws.write_formula(row, 9, f"='{run_name}'!AC4", border_number)
@@ -273,10 +278,12 @@ def write_trad_results_to_excel(trad_results, input_config: InputSheetConfig):
     header_diff_tablerow = ['GOC', 'DV # of Policies', 'DV SA', 'RAFM # of Policies', 'RAFM SA', 'Diff # of Policies', 'Diff SA']
     tablecol_fmt = wb.add_format({'bold': True, 'underline': True, 'bg_color':'#92D050'})
     
+    # Summary formats (green background)
     summary_number_fmt = wb.add_format({'num_format': number_format, 'bg_color': '#92D050', 'bold': True})
-
-    data_bold_fmt = wb.add_format({'bold': True}) 
-    data_number_fmt = wb.add_format({'num_format': number_format})
+    
+    # Data formats (no green background, with border)
+    data_bold_fmt = wb.add_format({'bold': True})  # GOC column - bold with border
+    data_number_fmt = wb.add_format({'num_format': number_format})  # Data columns - border only
 
     for run_name in input_config.tradfilter:
         if run_name not in trad_results:
@@ -287,7 +294,7 @@ def write_trad_results_to_excel(trad_results, input_config: InputSheetConfig):
         standard = convert_trad_result_to_standard(tr)
         df_list = standard['tables']
         sum_list = standard['summaries']
-        col_starts = [1, 9, 17, 25, 33] 
+        col_starts = [1, 9, 17, 25, 33]  # B, J, R, Z, AH
 
         for idx, (df, summary) in enumerate(zip(df_list, sum_list)):
             ws.set_column(col_starts[idx], col_starts[idx] + 6, 20)
@@ -308,6 +315,7 @@ def write_trad_results_to_excel(trad_results, input_config: InputSheetConfig):
             elif idx == 4:
                 ws.write(3, col_starts[idx], 'Total C', tablecol_fmt)
 
+            # Summary section (GREEN background for all summaries)
             if summary is not None and not summary.empty:
                 for row in range(len(summary)):
                     for c, item in enumerate(summary.iloc[row]):
@@ -316,14 +324,17 @@ def write_trad_results_to_excel(trad_results, input_config: InputSheetConfig):
                             3 + row,
                             col_starts[idx] + 1 + c,
                             value,
-                            summary_number_fmt  
+                            summary_number_fmt  # Green background for all summaries
                         )
 
+            # Data section (NO green background, only borders)
             if df is not None and not df.empty:
                 for row in range(len(df)):
+                    # First column (GOC) - bold with border
                     goc_value = df.iloc[row, 0] if not pd.isna(df.iloc[row, 0]) else ''
                     ws.write(6 + row, col_starts[idx], goc_value, data_bold_fmt)
-
+                    
+                    # Data columns - border only
                     for c in range(1, len(df.columns)):
                         item = df.iloc[row, c]
                         value = item if not (pd.isna(item) or item == '') else 0

@@ -133,7 +133,16 @@ def main(params):
     cf_argo = pd.DataFrame(summary_rows_argo)
     cf_argo = cf_argo[['File_Name'] + [col for col in cf_argo.columns if col != 'File_Name']]
     cf_argo = cf_argo.rename(columns={'File_Name': 'ARGO File Name', 'DAC_COV_UNITS': 'dac_cov_units'})
-
+    cf_argo = pd.merge(code,cf_argo, on = 'ARGO File Name', how = 'left')
+    
+    columns_to_drop = []
+    if 'RAFM File Name' in cf_argo.columns:
+        columns_to_drop.append('RAFM File Name')
+    if 'UVSG File Name' in cf_argo.columns:
+        columns_to_drop.append('UVSG File Name')
+    if columns_to_drop:
+        cf_argo = cf_argo.drop(columns=columns_to_drop)
+    
     file_paths_rafm = [f for f in glob.glob(os.path.join(folder_path_rafm, '*.xlsx')) if not os.path.basename(f).startswith('~$')]
     file_entries = [(f, os.path.splitext(os.path.basename(f))[0]) for f in file_paths_rafm]
 
@@ -205,38 +214,27 @@ def main(params):
             for col in numeric_cols:
                 cf_rafm_merge.at[idx, col] = total_values[col]
 
-    cf_rafm = cf_rafm_merge.drop(columns=['ARGO File Name'])
+    columns_to_drop = []
+    if 'ARGO File Name' in cf_rafm_merge.columns:
+        columns_to_drop.append('ARGO File Name')
+    if 'UVSG File Name' in cf_rafm_merge.columns:
+        columns_to_drop.append('UVSG File Name')
+    if columns_to_drop:
+        cf_rafm = cf_rafm_merge.drop(columns=columns_to_drop)
+    else:
+        cf_rafm = cf_rafm_merge.copy()
+    
     cf_rafm['dac_cov_units'] = cf_rafm['cov_units']
 
     rafm_manual = pd.read_excel(rafm_manual_path, sheet_name = 'Sheet1',engine = 'openpyxl')
     rafm_manual = rafm_manual.drop (columns = ['No'])
     rafm_manual = rafm_manual.fillna(0)
 
-    cf_rafm_2 = cf_rafm.groupby('RAFM File Name', as_index=False).first()
-    rafm_manual_1 = rafm_manual.groupby('RAFM File Name', as_index=False).first()
-    rafm = pd.merge(cf_rafm_2, rafm_manual_1, on='RAFM File Name', how="left", suffixes=('_cf', '_manual')).fillna(0)
+    final = code.copy()
     for col in cols_to_compare:
-        col_cf = f"{col}_cf"             
-        col_manual = f"{col}_manual" 
+        if col not in code.columns:
+            final[col] = pd.NA
 
-        if col_cf in rafm.columns and col_manual in rafm.columns:
-            rafm[f'{col}'] = rafm[col_cf] - rafm[col_manual] 
-    cols_final = ['RAFM File Name']+ [f'{col}' for col in cols_to_compare]
-    rafm = rafm[cols_final]
-    rafm = rafm.fillna(0)
-    rafm_merged = pd.merge(code, rafm.groupby('RAFM File Name', as_index=False).first(), on="RAFM File Name", how="left").fillna(0)
-    final = pd.merge(rafm_merged, cf_argo, on='ARGO File Name', how="left", suffixes=('_merged', '_argo'))
-
-    for col in cols_to_compare:
-        col_argo = f"{col}_argo"
-        col_merged = f"{col}_merged"
-        if col_argo in final.columns and col_merged in final.columns:
-            final[f'{col}_diff'] = final[col_merged] - final[col_argo]
-        else:
-            print(f"Skipped {col} because columns not found: {col_argo}, {col_merged}")
-
-    cols_final = ['RAFM File Name', 'ARGO File Name'] + [f'{col}_diff' for col in cols_to_compare]
-    final = final[cols_final].fillna(0)
     logic_row = sign_logic.iloc[0]
 
     valid_cols = [col for col in logic_row.index if col in cf_argo.columns]
@@ -283,15 +281,15 @@ def main(params):
         control.at[idx, 'check sign'] = 'Check Sign'
         control.at[idx, 'result'] = check_sign_total
 
+
     return {
         'Control':control,
         'Code':code,
         "CF ARGO REAS": cf_argo,
         "RAFM Output REAS": cf_rafm,
-        "RAFM Manual REAS" : rafm_manual,
+        "RAFM Output Manual" : rafm_manual,
         "Checking Summary REAS": final
     }
 if __name__ == '__main__':
     import multiprocessing
     multiprocessing.freeze_support()
-

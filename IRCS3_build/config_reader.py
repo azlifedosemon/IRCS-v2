@@ -4,7 +4,10 @@ import os
 def read_input_settings(excel_path):
     """Read settings from INPUT_SETTING sheet"""
     try:
+        # Read the INPUT_SETTING sheet
         df = pd.read_excel(excel_path, sheet_name='INPUT_SETTING', engine='openpyxl')
+        
+        # Convert to dictionary format
         settings = {}
         for _, row in df.iterrows():
             if pd.notna(row.get('Category')) and pd.notna(row.get('Path')):
@@ -20,20 +23,23 @@ def read_input_settings(excel_path):
 
 def convert_settings_to_filter_config(settings, run_name="Default_Run"):
     """Convert INPUT_SETTING format to filter configuration format"""
-
+    
+    # Extract paths
     base_path = settings.get('Output Path Trad', '') or settings.get('Output Path UL', '')
     if base_path:
         base_path = os.path.dirname(base_path)
-
+    
+    # Get valuation info
     val_month = settings.get('Valuation Month', '12')
     val_year = settings.get('Valuation Year', '2025') 
     fx_rate = settings.get('FX Rate Valdate', '16233')
-
+    
+    # Create filter configuration for TRAD
     trad_config = {
         'RUN': f"{run_name}_TRAD",
         'run_name': f"{run_name}_TRAD",
-        'path_dv': '', 
-        'path_rafm': '',  
+        'path_dv': '',  # Will be set by user
+        'path_rafm': '',  # Will be set by user
         'USDIDR': float(fx_rate) if fx_rate and fx_rate.replace('.','').isdigit() else 16233.0,
         'only_channel': '',
         'exclude_channel': '',
@@ -47,12 +53,13 @@ def convert_settings_to_filter_config(settings, run_name="Default_Run"):
         'exclude_period': ''
     }
     
+    # Create filter configuration for UL
     ul_config = {
         'RUN': f"{run_name}_UL",
         'run_name': f"{run_name}_UL", 
-        'path_dv': '', 
-        'path_rafm': '', 
-        'path_uvsg': '', 
+        'path_dv': '',  # Will be set by user
+        'path_rafm': '',  # Will be set by user
+        'path_uvsg': '',  # Optional - Will be set by user
         'USDIDR': float(fx_rate) if fx_rate and fx_rate.replace('.','').isdigit() else 16233.0,
         'only_channel': '',
         'exclude_channel': '',
@@ -69,12 +76,16 @@ def convert_settings_to_filter_config(settings, run_name="Default_Run"):
     return trad_config, ul_config
 
 def create_filter_sheets_from_settings(excel_path, settings):
+    """Create FILTER_TRAD and FILTER_UL sheets from INPUT_SETTING"""
     try:
+        # Convert settings to filter configs
         trad_config, ul_config = convert_settings_to_filter_config(settings)
-
+        
+        # Create DataFrames
         trad_df = pd.DataFrame([trad_config])
         ul_df = pd.DataFrame([ul_config])
         
+        # Write to Excel using ExcelWriter to add new sheets
         with pd.ExcelWriter(excel_path, mode='a', engine='openpyxl', if_sheet_exists='replace') as writer:
             trad_df.to_excel(writer, sheet_name='FILTER_TRAD', index=False)
             ul_df.to_excel(writer, sheet_name='FILTER_UL', index=False)
@@ -87,12 +98,17 @@ def create_filter_sheets_from_settings(excel_path, settings):
         return False
 
 def validate_and_setup_input_file(excel_path):
+    """Validate input file and setup filter sheets if needed"""
     try:
+        # Check if file exists
         if not os.path.exists(excel_path):
             return False, f"File not found: {excel_path}"
         
+        # Read existing sheets
         xl_file = pd.ExcelFile(excel_path)
         existing_sheets = xl_file.sheet_names
+        
+        # Check if filter sheets exist
         has_filter_trad = 'FILTER_TRAD' in existing_sheets
         has_filter_ul = 'FILTER_UL' in existing_sheets
         has_input_setting = 'INPUT_SETTING' in existing_sheets
@@ -165,6 +181,7 @@ def get_file_paths_from_user():
     return paths
 
 def update_filter_sheets_with_paths(excel_path, file_paths):
+    """Update filter sheets with actual file paths"""
     try:
         # Read existing filter sheets
         trad_df = pd.read_excel(excel_path, sheet_name='FILTER_TRAD')
@@ -189,22 +206,27 @@ def update_filter_sheets_with_paths(excel_path, file_paths):
     except Exception as e:
         print(f"Error updating filter sheets: {str(e)}")
         return False
-    
-def setup_configuration(excel_path):
-    print("Setting up configuration...")
 
+# Main function that can be called by run_program.py
+def setup_configuration(excel_path):
+    """Main function to setup configuration from input file"""
+    print("Setting up configuration...")
+    
+    # Validate and setup input file
     is_valid, message = validate_and_setup_input_file(excel_path)
     if not is_valid:
         print(f"Configuration setup failed: {message}")
         return False
     
     print(f"✓ {message}")
-
+    
+    # Get file paths from user
     file_paths = get_file_paths_from_user()
     if not file_paths:
         print("File path setup cancelled")
         return False
-
+    
+    # Update filter sheets with paths
     success = update_filter_sheets_with_paths(excel_path, file_paths)
     if not success:
         return False
