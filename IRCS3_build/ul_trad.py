@@ -1,6 +1,7 @@
 import pandas as pd
 import re
 import os
+import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
@@ -50,13 +51,11 @@ def combine_filters(*args):
     return combined
 
 def apply_filters(df, params):
-    """Apply filters to dataframe based on parameters with case-insensitive column handling"""
     if df.empty:
         return df.copy()
-    
-    # Make dataframe case-insensitive
+
     df_processed, column_mapping = make_columns_case_insensitive(df)
-    
+
     produk_tertentu = combine_filters(
         parse_multi_values(params.get('only_channel', '')),
         parse_multi_values(params.get('only_currency', '')),
@@ -67,27 +66,35 @@ def apply_filters(df, params):
         parse_multi_values(params.get('exclude_currency', '')),
         parse_multi_values(params.get('exclude_portfolio', '')),
     )
+
     only_cohort_list = parse_multi_values(params.get('only_cohort', ''))
     only_period_list = parse_multi_values(params.get('only_period', ''))
-    
+
     tahun_tertentu = []
     if only_cohort_list and only_period_list:
         for c in only_cohort_list:
             for p in only_period_list:
                 tahun_tertentu.append(f"{c}_{p}")
-    
+    elif only_cohort_list:
+        tahun_tertentu.extend(only_cohort_list)
+    elif only_period_list:
+        tahun_tertentu.extend(only_period_list)
+
     exclude_cohort_list = parse_multi_values(params.get('exclude_cohort', ''))
     exclude_period_list = parse_multi_values(params.get('exclude_period', ''))
-    
+
     kecuali_tahun = []
     if exclude_cohort_list and exclude_period_list:
         for c in exclude_cohort_list:
             for p in exclude_period_list:
                 kecuali_tahun.append(f"{c}_{p}")
+    elif exclude_cohort_list:
+        kecuali_tahun.extend(exclude_cohort_list)
+    elif exclude_period_list:
+        kecuali_tahun.extend(exclude_period_list)
 
     mask = pd.Series(True, index=df_processed.index)
 
-    # Use lowercase 'goc' column
     goc_col = 'goc'
     if goc_col not in df_processed.columns:
         print(f"Warning: 'goc' column not found. Available columns: {df_processed.columns.tolist()}")
@@ -96,36 +103,27 @@ def apply_filters(df, params):
     if kecuali_tahun:
         pattern_exc = '|'.join(map(re.escape, kecuali_tahun))
         mask &= ~df_processed[goc_col].astype(str).str.contains(pattern_exc, case=False, na=False)
-    
+
     if tahun_tertentu:
         pattern_inc = '|'.join(map(re.escape, tahun_tertentu))
         mask &= df_processed[goc_col].astype(str).str.contains(pattern_inc, case=False, na=False)
-    
+
     if produk_tertentu:
         produk_mask = pd.Series(False, index=df_processed.index)
         for produk in produk_tertentu:
-            produk_mask |= df_processed[goc_col].astype(str).str.contains(re.escape(produk), case=False, na=False)
+            pattern = rf'(^|_){re.escape(produk)}(_|$)'
+            produk_mask |= df_processed[goc_col].astype(str).str.contains(pattern, case=False, na=False)
         mask &= produk_mask
-    
+
     if kecuali_produk:
         for produk_exc in kecuali_produk:
-            mask &= ~df_processed[goc_col].astype(str).str.contains(re.escape(produk_exc), case=False, na=False)
+            pattern = rf'(^|_){re.escape(produk_exc)}(_|$)'
+            mask &= ~df_processed[goc_col].astype(str).str.contains(pattern, case=False, na=False)
 
-    # Apply mask and restore original column names
+
+
     filtered_df = df_processed[mask].copy()
-    
-    # Restore original column names
-    original_columns = []
-    for col in filtered_df.columns:
-        if col in column_mapping.values():
-            original_columns.append(col)
-        else:
-            # Find original name
-            original_col = column_mapping.get(col.lower(), col)
-            original_columns.append(original_col)
-    
-    filtered_df.columns = original_columns
-    
+    filtered_df.columns = [column_mapping.get(col.lower(), col) for col in filtered_df.columns]
     return filtered_df
 
 def filter_goc_by_code(df, code):
@@ -162,11 +160,9 @@ def clean_numeric_column(df, column_name):
     """Clean and convert column to numeric with case-insensitive column handling"""
     df_processed, _ = make_columns_case_insensitive(df)
     
-    # Check for column in lowercase
     column_lower = column_name.lower()
     
     if column_lower in df_processed.columns:
-        # Find original column name in original df
         original_col = None
         for col in df.columns:
             if col.lower() == column_lower:
@@ -194,7 +190,6 @@ def load_excel_sheet_safely(file_path, sheet_name, required_columns=None, return
         
         df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
 
-        # Build mapping original → lowercase
         column_mapping = {col.lower(): col for col in df.columns}
 
         if required_columns:
@@ -205,12 +200,10 @@ def load_excel_sheet_safely(file_path, sheet_name, required_columns=None, return
             if missing_cols:
                 print(f"⚠️ Missing columns {missing_cols} in {sheet_name}")
                 return (pd.DataFrame(), {}) if return_column_mapping else pd.DataFrame()
-
-            # Select columns, preserving original names
+            
             selected_columns = [column_mapping[col.lower()] for col in required_columns]
             df = df[selected_columns]
-        
-        # Standardize column names to lowercase
+
         df.columns = [col.lower() for col in df.columns]
 
         return (df, column_mapping) if return_column_mapping else df
@@ -270,53 +263,55 @@ def run_trad(params):
             def sortir(name):
                 if not isinstance(name, str) or not name:
                     return ''
+
+                def remove_trailing_q_and_if(parts):
+                    while parts and (re.fullmatch(r'Q\d+', parts[-1], re.IGNORECASE) or parts[-1].upper() == 'IF'):
+                        parts.pop()
+                    return parts
+
+                only_cohort = parse_multi_values(params.get('only_cohort', ''))
+                only_period = parse_multi_values(params.get('only_period', ''))
+                tahun_tertentu = [f"{c}_{p}" for c in only_cohort for p in only_period]
+
                 if '____' in name:
                     double_underscore_parts = name.split('____')
                     if len(double_underscore_parts) > 1:
                         after_double = double_underscore_parts[-1]
                         after_parts = [p for p in after_double.split('_') if p]
+
                         year_index_after = -1
                         for i, part in enumerate(after_parts):
                             if re.fullmatch(r'\d{4}', part):
                                 year_index_after = i
                                 break
-                        # Check if Q1 in filters
-                        only_cohort = parse_multi_values(params.get('only_cohort', ''))
-                        only_period = parse_multi_values(params.get('only_period', ''))
-                        tahun_tertentu = []
-                        for c in only_cohort:
-                            for p in only_period:
-                                tahun_tertentu.append(f"{c}_{p}")
-                        
-                        if tahun_tertentu and any('Q1' in t.upper() for t in tahun_tertentu):
-                            return after_double
+
                         if year_index_after == -1:
                             return ''
+                        if tahun_tertentu and any('Q' in t.upper() or 'IF' in t.upper() for t in tahun_tertentu):
+                            filtered_parts = remove_trailing_q_and_if(after_parts[:year_index_after + 1])
+                            return '_'.join(filtered_parts)
+
                         return '_'.join(after_parts[:year_index_after + 1])
-                
+
                 parts = [p for p in name.split('_') if p]
                 year_index = -1
                 for i, part in enumerate(parts):
                     if re.fullmatch(r'\d{4}', part):
                         year_index = i
                         break
+
                 start_index = next((i for i, part in enumerate(parts) if part == 'AG'), 2)
-                
-                # Check if Q1 in filters
-                only_cohort = parse_multi_values(params.get('only_cohort', ''))
-                only_period = parse_multi_values(params.get('only_period', ''))
-                tahun_tertentu = []
-                for c in only_cohort:
-                    for p in only_period:
-                        tahun_tertentu.append(f"{c}_{p}")
-                
-                if tahun_tertentu and any('Q1' in t.upper() for t in tahun_tertentu):
-                    return '_'.join(parts[start_index:])
+
                 if year_index == -1:
                     return ''
-                return '_'.join(parts[start_index:year_index + 1])
-            return sortir
 
+                if tahun_tertentu and any('Q' in t.upper() or 'IF' in t.upper() for t in tahun_tertentu):
+                    filtered_parts = remove_trailing_q_and_if(parts[start_index:year_index + 1])
+                    return '_'.join(filtered_parts)
+
+                return '_'.join(parts[start_index:year_index + 1])
+
+            return sortir
         sortir_func = get_sortir(params)
         dv_trad_total[goc_column] = dv_trad_total[goc_column].apply(sortir_func)
         dv_trad_total[goc_column] = dv_trad_total[goc_column].apply(lambda x: 'H_IDR_NO_2025' if x == 'IDR_NO_2025' else x)
@@ -334,6 +329,11 @@ def run_trad(params):
             print("❌ Parameter 'usdidr' tidak ditemukan dalam input")
         else:
             usd_rate = (params_lower['usdidr'])
+            if isinstance(usd_rate, (np.ndarray, pd.Series)):
+                usd_rate = usd_rate.astype(float)
+            elif isinstance(usd_rate, str):
+                usd_rate = float(usd_rate)
+
         
         # Find sum_assd column
         sum_assd_column = None
@@ -344,7 +344,11 @@ def run_trad(params):
         
         if sum_assd_column:
             usd_mask = dv_trad_total[goc_column].astype(str).str.contains("USD", case=False, na=False)
-            dv_trad_total.loc[usd_mask, sum_assd_column] = dv_trad_total.loc[usd_mask, sum_assd_column] * usd_rate
+            dv_trad_total.loc[usd_mask, sum_assd_column] = pd.to_numeric(
+                dv_trad_total.loc[usd_mask, sum_assd_column], errors='coerce'
+            )
+            dv_trad_total.loc[usd_mask, sum_assd_column] *= usd_rate
+
 
         # Load RAFM data with case-insensitive column handling
         run_rafm_idr = load_excel_sheet_safely(path_rafm, 'extraction_IDR', ['GOC', 'period', 'cov_units', 'pol_b'])
@@ -468,7 +472,6 @@ def run_trad(params):
             )
             tabel_5_processed = tabel_5_processed.groupby([goc_column], as_index=False).sum(numeric_only=True)
             tabel_5 = tabel_5_processed
-
         return {
             'product_type': 'TRAD',
             'tabel_total': tabel_total_l,
@@ -479,7 +482,7 @@ def run_trad(params):
             'summary_total': summary,
             'run_name': params.get('run_name', params.get('run', ''))
         }
-
+    
     except Exception as e:
         return {"error": f"Error in run_trad: {str(e)}"}
 
@@ -560,6 +563,11 @@ def run_ul(params):
             print("❌ Parameter 'usdidr' tidak ditemukan dalam input")
         else:
             usd_rate = (params_lower['usdidr'])
+            if isinstance(usd_rate, (np.ndarray, pd.Series)):
+                usd_rate = usd_rate.astype(float)
+            elif isinstance(usd_rate, str):
+                usd_rate = float(usd_rate)
+
                     
         # Find total_fund column
         total_fund_column = None
@@ -570,7 +578,11 @@ def run_ul(params):
         
         if total_fund_column:
             usd_mask = dv_ul_total[goc_column].astype(str).str.contains("USD", case=False, na=False)
-            dv_ul_total.loc[usd_mask, total_fund_column] = dv_ul_total.loc[usd_mask, total_fund_column] * usd_rate
+            dv_ul_total.loc[usd_mask, total_fund_column] = pd.to_numeric(
+                dv_ul_total.loc[usd_mask, total_fund_column], errors='coerce'
+            )
+            dv_ul_total.loc[usd_mask, total_fund_column] *= usd_rate
+
 
         # Load RAFM data with case-insensitive column handling
         run_rafm_idr = load_excel_sheet_safely(path_rafm, 'extraction_IDR', ['GOC', 'period', 'pol_b', 'RV_AV_IF'])
