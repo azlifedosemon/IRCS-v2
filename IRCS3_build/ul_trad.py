@@ -55,7 +55,8 @@ def apply_filters(df, params):
         return df.copy()
 
     df_processed, column_mapping = make_columns_case_insensitive(df)
-
+    
+    # Ambil semua filter produk
     produk_tertentu = combine_filters(
         parse_multi_values(params.get('only_channel', '')),
         parse_multi_values(params.get('only_currency', '')),
@@ -160,9 +161,11 @@ def clean_numeric_column(df, column_name):
     """Clean and convert column to numeric with case-insensitive column handling"""
     df_processed, _ = make_columns_case_insensitive(df)
     
+    # Check for column in lowercase
     column_lower = column_name.lower()
     
     if column_lower in df_processed.columns:
+        # Find original column name in original df
         original_col = None
         for col in df.columns:
             if col.lower() == column_lower:
@@ -190,6 +193,7 @@ def load_excel_sheet_safely(file_path, sheet_name, required_columns=None, return
         
         df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
 
+        # Build mapping original → lowercase
         column_mapping = {col.lower(): col for col in df.columns}
 
         if required_columns:
@@ -200,10 +204,12 @@ def load_excel_sheet_safely(file_path, sheet_name, required_columns=None, return
             if missing_cols:
                 print(f"⚠️ Missing columns {missing_cols} in {sheet_name}")
                 return (pd.DataFrame(), {}) if return_column_mapping else pd.DataFrame()
-            
+
+            # Select columns, preserving original names
             selected_columns = [column_mapping[col.lower()] for col in required_columns]
             df = df[selected_columns]
-
+        
+        # Standardize column names to lowercase
         df.columns = [col.lower() for col in df.columns]
 
         return (df, column_mapping) if return_column_mapping else df
@@ -265,6 +271,7 @@ def run_trad(params):
                     return ''
 
                 def remove_trailing_q_and_if(parts):
+                    # Hapus trailing token Q* atau IF
                     while parts and (re.fullmatch(r'Q\d+', parts[-1], re.IGNORECASE) or parts[-1].upper() == 'IF'):
                         parts.pop()
                     return parts
@@ -287,6 +294,8 @@ def run_trad(params):
 
                         if year_index_after == -1:
                             return ''
+
+                        # Kalau filter ada Q1 atau Q2 dll, kembalikan sampai tahun saja tanpa trailing Q* dan IF
                         if tahun_tertentu and any('Q' in t.upper() or 'IF' in t.upper() for t in tahun_tertentu):
                             filtered_parts = remove_trailing_q_and_if(after_parts[:year_index_after + 1])
                             return '_'.join(filtered_parts)
@@ -532,27 +541,64 @@ def run_ul(params):
             return {"error": "GOC column not found in DV data"}
 
         # Process GOC
-        def sortir(name):
-            if not isinstance(name, str) or not name:
-                return ''
-            parts = [p for p in str(name).split('_') if p]
-            year_index = -1
-            for i, part in enumerate(parts):
-                if re.fullmatch(r'\d{4}', part):
-                    year_index = i
-                    break
-            if year_index == -1:
-                return ''
-            start_index = None
-            for i, part in enumerate(parts):
-                if part == 'AG':
-                    start_index = i
-                    break
-            if start_index is None:
-                start_index = 2
-            return '_'.join(parts[start_index:year_index+1])
+        def get_sortir(params):
+            def sortir(name):
+                if not isinstance(name, str) or not name:
+                    return ''
 
-        dv_ul_total[goc_column] = dv_ul_total[goc_column].apply(sortir)
+                def remove_trailing_q_and_if(parts):
+                    # Hapus trailing token Q* atau IF
+                    while parts and (re.fullmatch(r'Q\d+', parts[-1], re.IGNORECASE) or parts[-1].upper() == 'IF'):
+                        parts.pop()
+                    return parts
+
+                only_cohort = parse_multi_values(params.get('only_cohort', ''))
+                only_period = parse_multi_values(params.get('only_period', ''))
+                tahun_tertentu = [f"{c}_{p}" for c in only_cohort for p in only_period]
+
+                if '____' in name:
+                    double_underscore_parts = name.split('____')
+                    if len(double_underscore_parts) > 1:
+                        after_double = double_underscore_parts[-1]
+                        after_parts = [p for p in after_double.split('_') if p]
+
+                        year_index_after = -1
+                        for i, part in enumerate(after_parts):
+                            if re.fullmatch(r'\d{4}', part):
+                                year_index_after = i
+                                break
+
+                        if year_index_after == -1:
+                            return ''
+
+                        # Kalau filter ada Q1 atau Q2 dll, kembalikan sampai tahun saja tanpa trailing Q* dan IF
+                        if tahun_tertentu and any('Q' in t.upper() or 'IF' in t.upper() for t in tahun_tertentu):
+                            filtered_parts = remove_trailing_q_and_if(after_parts[:year_index_after + 1])
+                            return '_'.join(filtered_parts)
+
+                        return '_'.join(after_parts[:year_index_after + 1])
+
+                parts = [p for p in name.split('_') if p]
+                year_index = -1
+                for i, part in enumerate(parts):
+                    if re.fullmatch(r'\d{4}', part):
+                        year_index = i
+                        break
+
+                start_index = next((i for i, part in enumerate(parts) if part == 'AG'), 2)
+
+                if year_index == -1:
+                    return ''
+
+                if tahun_tertentu and any('Q' in t.upper() or 'IF' in t.upper() for t in tahun_tertentu):
+                    filtered_parts = remove_trailing_q_and_if(parts[start_index:year_index + 1])
+                    return '_'.join(filtered_parts)
+
+                return '_'.join(parts[start_index:year_index + 1])
+
+            return sortir
+
+        dv_ul_total[goc_column] = dv_ul_total[goc_column].apply(get_sortir)
         dv_ul_total = clean_numeric_column(dv_ul_total, 'pol_num')
         dv_ul_total = clean_numeric_column(dv_ul_total, 'total_fund')
         dv_ul_total = dv_ul_total.groupby([goc_column], as_index=False).sum(numeric_only=True)
