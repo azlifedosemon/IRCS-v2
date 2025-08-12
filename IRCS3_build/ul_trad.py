@@ -55,8 +55,7 @@ def apply_filters(df, params):
         return df.copy()
 
     df_processed, column_mapping = make_columns_case_insensitive(df)
-    
-    # Ambil semua filter produk
+
     produk_tertentu = combine_filters(
         parse_multi_values(params.get('only_channel', '')),
         parse_multi_values(params.get('only_currency', '')),
@@ -271,7 +270,6 @@ def run_trad(params):
                     return ''
 
                 def remove_trailing_q_and_if(parts):
-                    # Hapus trailing token Q* atau IF
                     while parts and (re.fullmatch(r'Q\d+', parts[-1], re.IGNORECASE) or parts[-1].upper() == 'IF'):
                         parts.pop()
                     return parts
@@ -295,7 +293,6 @@ def run_trad(params):
                         if year_index_after == -1:
                             return ''
 
-                        # Kalau filter ada Q1 atau Q2 dll, kembalikan sampai tahun saja tanpa trailing Q* dan IF
                         if tahun_tertentu and any('Q' in t.upper() or 'IF' in t.upper() for t in tahun_tertentu):
                             filtered_parts = remove_trailing_q_and_if(after_parts[:year_index_after + 1])
                             return '_'.join(filtered_parts)
