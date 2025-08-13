@@ -55,7 +55,7 @@ def apply_filters(df, params):
         return df.copy()
 
     df_processed, column_mapping = make_columns_case_insensitive(df)
-
+    
     produk_tertentu = combine_filters(
         parse_multi_values(params.get('only_channel', '')),
         parse_multi_values(params.get('only_currency', '')),
@@ -538,64 +538,27 @@ def run_ul(params):
             return {"error": "GOC column not found in DV data"}
 
         # Process GOC
-        def get_sortir(params):
-            def sortir(name):
-                if not isinstance(name, str) or not name:
-                    return ''
+        def sortir(name):
+            if not isinstance(name, str) or not name:
+                return ''
+            parts = [p for p in str(name).split('_') if p]
+            year_index = -1
+            for i, part in enumerate(parts):
+                if re.fullmatch(r'\d{4}', part):
+                    year_index = i
+                    break
+            if year_index == -1:
+                return ''
+            start_index = None
+            for i, part in enumerate(parts):
+                if part == 'AG':
+                    start_index = i
+                    break
+            if start_index is None:
+                start_index = 2
+            return '_'.join(parts[start_index:year_index+1])
 
-                def remove_trailing_q_and_if(parts):
-                    # Hapus trailing token Q* atau IF
-                    while parts and (re.fullmatch(r'Q\d+', parts[-1], re.IGNORECASE) or parts[-1].upper() == 'IF'):
-                        parts.pop()
-                    return parts
-
-                only_cohort = parse_multi_values(params.get('only_cohort', ''))
-                only_period = parse_multi_values(params.get('only_period', ''))
-                tahun_tertentu = [f"{c}_{p}" for c in only_cohort for p in only_period]
-
-                if '____' in name:
-                    double_underscore_parts = name.split('____')
-                    if len(double_underscore_parts) > 1:
-                        after_double = double_underscore_parts[-1]
-                        after_parts = [p for p in after_double.split('_') if p]
-
-                        year_index_after = -1
-                        for i, part in enumerate(after_parts):
-                            if re.fullmatch(r'\d{4}', part):
-                                year_index_after = i
-                                break
-
-                        if year_index_after == -1:
-                            return ''
-
-                        # Kalau filter ada Q1 atau Q2 dll, kembalikan sampai tahun saja tanpa trailing Q* dan IF
-                        if tahun_tertentu and any('Q' in t.upper() or 'IF' in t.upper() for t in tahun_tertentu):
-                            filtered_parts = remove_trailing_q_and_if(after_parts[:year_index_after + 1])
-                            return '_'.join(filtered_parts)
-
-                        return '_'.join(after_parts[:year_index_after + 1])
-
-                parts = [p for p in name.split('_') if p]
-                year_index = -1
-                for i, part in enumerate(parts):
-                    if re.fullmatch(r'\d{4}', part):
-                        year_index = i
-                        break
-
-                start_index = next((i for i, part in enumerate(parts) if part == 'AG'), 2)
-
-                if year_index == -1:
-                    return ''
-
-                if tahun_tertentu and any('Q' in t.upper() or 'IF' in t.upper() for t in tahun_tertentu):
-                    filtered_parts = remove_trailing_q_and_if(parts[start_index:year_index + 1])
-                    return '_'.join(filtered_parts)
-
-                return '_'.join(parts[start_index:year_index + 1])
-
-            return sortir
-
-        dv_ul_total[goc_column] = dv_ul_total[goc_column].apply(get_sortir)
+        dv_ul_total[goc_column] = dv_ul_total[goc_column].apply(sortir)
         dv_ul_total = clean_numeric_column(dv_ul_total, 'pol_num')
         dv_ul_total = clean_numeric_column(dv_ul_total, 'total_fund')
         dv_ul_total = dv_ul_total.groupby([goc_column], as_index=False).sum(numeric_only=True)
