@@ -38,7 +38,10 @@ ws.set_column(1, 19, max_len + 2)
 ws.set_column(20, 20, max_len * 6)
 
 for c, h in enumerate(headers_summary):
-    ws.write(c + 1, 3, h, wb.add_format({'bold': True}))
+    if h != headers_summary[-1]:
+        ws.write(c + 1, 3, h, wb.add_format({'bold': True}))
+    else:
+        ws.write(c + 1, 3, h, wb.add_format({'bold': True, 'bg_color': 'yellow'}))
 
 headers_table = ["Product code", "Grouping DV", "Grouping Raw Data"]
 for c, h in enumerate(headers_table):
