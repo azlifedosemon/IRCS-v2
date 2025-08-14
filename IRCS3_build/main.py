@@ -465,8 +465,6 @@ def write_ul_results_to_excel(ul_results, input_config: InputSheetConfig):
                 df = df_list[idx] if idx < len(df_list) else None
                 summary = sum_list[idx] if idx < len(sum_list) else None
 
-                print(f"[{run_name}] 📊 Menulis blok ke-{idx + 1} | df exist: {df is not None and not df.empty}, summary exist: {summary is not None and not summary.empty}")
-
                 if (df is None or df.empty) and (summary is None or summary.empty):
                     continue
                 ws.set_column(col_starts[idx], col_starts[idx] + 6, 20)
